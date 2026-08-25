@@ -19,13 +19,20 @@ Future<void> launchWhatsapp(String phone, {String? text}) {
   final uri = text == null || text.isEmpty
       ? Uri.parse('https://wa.me/$number')
       : Uri.parse('https://wa.me/$number?text=${Uri.encodeComponent(text)}');
-  return launchUrl(uri, mode: LaunchMode.externalApplication);
+  return launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+    webOnlyWindowName: '_self',
+  );
 }
 
 Future<void> launchEmail(String email) => launchUrl(Uri.parse('mailto:$email'));
 
-Future<void> launchWebLink(String url) =>
-    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+Future<void> launchWebLink(String url) => launchUrl(
+  Uri.parse(url),
+  mode: LaunchMode.externalApplication,
+  webOnlyWindowName: '_self',
+);
 
 Future<void> shareLink(String url) =>
     SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));

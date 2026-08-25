@@ -17,17 +17,20 @@ class GoogleDriveService {
     'https://www.googleapis.com/auth/drive.readonly',
   ];
 
-  static bool _initialized = false;
+  static Future<void>? _initFuture;
 
-  Future<void> _ensureInitialized() async {
-    if (_initialized) return;
-    await GoogleSignIn.instance.initialize(
-      clientId: kIsWeb
-          ? dotenv.env['GOOGLE_WEB_CLIENT_ID']
-          : dotenv.env['GOOGLE_IOS_CLIENT_ID'],
-      serverClientId: kIsWeb ? null : dotenv.env['GOOGLE_WEB_CLIENT_ID'],
-    );
-    _initialized = true;
+  Future<void> _ensureInitialized() {
+    return _initFuture ??= GoogleSignIn.instance
+        .initialize(
+          clientId: kIsWeb
+              ? dotenv.env['GOOGLE_WEB_CLIENT_ID']
+              : dotenv.env['GOOGLE_IOS_CLIENT_ID'],
+          serverClientId: kIsWeb ? null : dotenv.env['GOOGLE_WEB_CLIENT_ID'],
+        )
+        .catchError((Object e) {
+          _initFuture = null;
+          throw e;
+        });
   }
 
   Future<drive.DriveApi> _authorizedDriveApi() async {

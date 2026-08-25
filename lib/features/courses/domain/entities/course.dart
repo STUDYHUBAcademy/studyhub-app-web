@@ -9,6 +9,7 @@ class Course {
     this.demoLink,
     this.groupLink,
     required this.status,
+    required this.explanationStatus,
     required this.createdAt,
   });
 
@@ -21,6 +22,7 @@ class Course {
   final String? demoLink;
   final String? groupLink;
   final String status; // planning | active | inactive | archived
+  final String explanationStatus; // not_started | in_progress | completed
   final DateTime createdAt;
 
   factory Course.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,8 @@ class Course {
       demoLink: json['demo_link'] as String?,
       groupLink: json['group_link'] as String?,
       status: json['status'] as String? ?? 'planning',
+      explanationStatus:
+          json['explanation_status'] as String? ?? 'not_started',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

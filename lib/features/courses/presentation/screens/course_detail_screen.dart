@@ -401,6 +401,42 @@ class _CourseDetailBody extends ConsumerWidget {
                       );
                     }).toList(),
                   ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'حالة استكمال الشرح',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: explanationStatusLabels.entries.map((e) {
+                      final selected = course.explanationStatus == e.key;
+                      final c =
+                          explanationStatusColors[e.key] ??
+                          AppColors.textMuted;
+                      return ChoiceChip(
+                        label: Text(e.value),
+                        selected: selected,
+                        onSelected: (_) => ref
+                            .read(coursesRepositoryProvider)
+                            .updateCourseExplanationStatus(course.id, e.key),
+                        selectedColor: c.withValues(alpha: 0.2),
+                        labelStyle: TextStyle(
+                          color: selected ? c : AppColors.textMuted,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                        side: BorderSide(
+                          color: selected ? c : AppColors.border,
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ],
               ),
             ),

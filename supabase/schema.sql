@@ -135,11 +135,15 @@ create table if not exists courses (
   demo_link text,
   group_link text,
   status text not null default 'planning' check (status in ('planning','active','inactive','archived')),
+  explanation_status text not null default 'not_started' check (explanation_status in ('not_started','in_progress','completed')),
   created_at timestamptz not null default now()
 );
 alter table courses add column if not exists materials_link text;
 alter table courses add column if not exists demo_link text;
 alter table courses add column if not exists group_link text;
+alter table courses add column if not exists explanation_status text not null default 'not_started';
+alter table courses drop constraint if exists courses_explanation_status_check;
+alter table courses add constraint courses_explanation_status_check check (explanation_status in ('not_started','in_progress','completed'));
 
 -- 'demo' was a confusing course-level status (demos already have their own
 -- section/table) — collapse it back into 'planning' and tighten the check.

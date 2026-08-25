@@ -106,6 +106,11 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
+  Future<void> updateCourseExplanationStatus(String courseId, String status) {
+    return _remote.updateCourse(courseId, {'explanation_status': status});
+  }
+
+  @override
   Future<void> deleteCourse(String courseId) => _remote.deleteCourse(courseId);
 
   @override

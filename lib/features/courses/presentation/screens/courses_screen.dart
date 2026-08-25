@@ -502,6 +502,16 @@ class _CourseTile extends StatelessWidget {
                   color: AppColors.info,
                 ),
               ),
+            Text(
+              '📖 ${explanationStatusLabels[course.explanationStatus] ?? course.explanationStatus}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color:
+                    explanationStatusColors[course.explanationStatus] ??
+                    AppColors.textMuted,
+              ),
+            ),
           ],
         ),
         trailing: Container(

@@ -13,3 +13,15 @@ const courseStatusColors = {
   'inactive': AppColors.textMuted,
   'archived': AppColors.textMuted,
 };
+
+const explanationStatusLabels = {
+  'not_started': 'غير مشروح',
+  'in_progress': 'قيد الشرح',
+  'completed': 'الشرح كامل',
+};
+
+const explanationStatusColors = {
+  'not_started': AppColors.error,
+  'in_progress': AppColors.warning,
+  'completed': AppColors.success,
+};

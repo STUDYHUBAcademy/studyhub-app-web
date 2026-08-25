@@ -372,8 +372,10 @@ create table if not exists tasks (
   status text not null default 'open' check (status in ('open','done')),
   linked_course_id uuid references courses(id) on delete set null,
   created_by uuid references profiles(id),
+  progress_note text,
   created_at timestamptz not null default now()
 );
+alter table tasks add column if not exists progress_note text;
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Chat (one channel per course, plus one general channel)

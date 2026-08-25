@@ -6,6 +6,7 @@ class Task {
     this.dueDate,
     required this.status,
     this.linkedCourseId,
+    this.progressNote,
     required this.createdAt,
   });
 
@@ -15,6 +16,7 @@ class Task {
   final DateTime? dueDate;
   final String status; // open | done
   final String? linkedCourseId;
+  final String? progressNote;
   final DateTime createdAt;
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class Task {
           : null,
       status: json['status'] as String? ?? 'open',
       linkedCourseId: json['linked_course_id'] as String?,
+      progressNote: json['progress_note'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

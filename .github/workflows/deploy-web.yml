@@ -38,7 +38,7 @@ jobs:
           EOF
 
       - run: flutter pub get
-      - run: flutter build web --release --base-href /studyhub-app-web/
+      - run: flutter build web --release --base-href /studyhub-app-web/ --pwa-strategy=none
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

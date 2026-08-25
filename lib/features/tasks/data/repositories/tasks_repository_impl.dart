@@ -33,5 +33,22 @@ class TasksRepositoryImpl implements TasksRepository {
   }
 
   @override
+  Future<void> updateTask({
+    required String id,
+    required String title,
+    String? body,
+    DateTime? dueDate,
+    String? progressNote,
+  }) {
+    return _remote.updateTask(
+      id: id,
+      title: title,
+      body: body,
+      dueDate: dueDate,
+      progressNote: progressNote,
+    );
+  }
+
+  @override
   Future<void> deleteTask(String id) => _remote.deleteTask(id);
 }

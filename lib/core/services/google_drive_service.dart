@@ -17,7 +17,7 @@ class GoogleDriveService {
     'https://www.googleapis.com/auth/drive.readonly',
   ];
 
-  bool _initialized = false;
+  static bool _initialized = false;
 
   Future<void> _ensureInitialized() async {
     if (_initialized) return;

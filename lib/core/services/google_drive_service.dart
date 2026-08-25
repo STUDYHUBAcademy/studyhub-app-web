@@ -1,4 +1,5 @@
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
@@ -21,8 +22,10 @@ class GoogleDriveService {
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
     await GoogleSignIn.instance.initialize(
-      clientId: dotenv.env['GOOGLE_IOS_CLIENT_ID'],
-      serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID'],
+      clientId: kIsWeb
+          ? dotenv.env['GOOGLE_WEB_CLIENT_ID']
+          : dotenv.env['GOOGLE_IOS_CLIENT_ID'],
+      serverClientId: kIsWeb ? null : dotenv.env['GOOGLE_WEB_CLIENT_ID'],
     );
     _initialized = true;
   }

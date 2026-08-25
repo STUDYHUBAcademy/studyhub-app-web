@@ -33,27 +33,44 @@ class GoogleDriveService {
         });
   }
 
-  Future<drive.DriveApi> _authorizedDriveApi() async {
+  /// Whether this platform supports calling [signInInteractively] directly
+  /// (mobile). On web this is false — the user must sign in via the
+  /// rendered Google button instead (see [authenticationEvents]).
+  Future<bool> get supportsDirectSignIn async {
     await _ensureInitialized();
-    final signIn = GoogleSignIn.instance;
+    return GoogleSignIn.instance.supportsAuthenticate();
+  }
 
-    GoogleSignInAccount? account;
-    final lightweight = signIn.attemptLightweightAuthentication();
-    if (lightweight != null) {
-      account = await lightweight;
-    }
-    account ??= await signIn.authenticate(scopeHint: _scopes);
+  Stream<GoogleSignInAuthenticationEvent> get authenticationEvents =>
+      GoogleSignIn.instance.authenticationEvents;
 
-    GoogleSignInClientAuthorization authorization =
+  /// Tries to sign in without any user interaction (reuses an existing
+  /// session/cookie). Returns null if a sign-in prompt is required.
+  Future<GoogleSignInAccount?> attemptSilentSignIn() async {
+    await _ensureInitialized();
+    final lightweight = GoogleSignIn.instance.attemptLightweightAuthentication();
+    return lightweight != null ? await lightweight : null;
+  }
+
+  /// Mobile-only: opens the native account picker directly.
+  Future<GoogleSignInAccount> signInInteractively() async {
+    await _ensureInitialized();
+    return GoogleSignIn.instance.authenticate(scopeHint: _scopes);
+  }
+
+  Future<drive.DriveApi> _driveApiFor(GoogleSignInAccount account) async {
+    final authorization =
         await account.authorizationClient.authorizationForScopes(_scopes) ??
         await account.authorizationClient.authorizeScopes(_scopes);
-
     final client = authorization.authClient(scopes: _scopes);
     return drive.DriveApi(client);
   }
 
-  Future<List<DriveFolder>> listSubfolders(String parentFolderId) async {
-    final api = await _authorizedDriveApi();
+  Future<List<DriveFolder>> listSubfolders(
+    GoogleSignInAccount account,
+    String parentFolderId,
+  ) async {
+    final api = await _driveApiFor(account);
     final result = await api.files.list(
       q: "'$parentFolderId' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
       $fields: 'files(id,name,webViewLink)',

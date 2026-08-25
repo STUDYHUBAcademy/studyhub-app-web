@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
@@ -318,15 +317,11 @@ class _CourseDetailBody extends ConsumerWidget {
                       tooltip: 'مشاركة اللينك',
                       onPressed: () => shareLink(course.materialsLink!),
                     ),
-                  if (!kIsWeb)
-                    IconButton(
-                      icon: const Icon(
-                        Icons.travel_explore_outlined,
-                        size: 20,
-                      ),
-                      tooltip: 'تصفح Google Drive',
-                      onPressed: () => _browseDrive(context, ref),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.travel_explore_outlined, size: 20),
+                    tooltip: 'تصفح Google Drive',
+                    onPressed: () => _browseDrive(context, ref),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     onPressed: () => _editMaterialsLink(context, ref),

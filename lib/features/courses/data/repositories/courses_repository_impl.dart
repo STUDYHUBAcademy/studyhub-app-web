@@ -77,6 +77,20 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
+  Future<void> updateCourseDetails({
+    required String courseId,
+    required String subjectName,
+    String? universityId,
+    String? firstTermId,
+  }) {
+    return _remote.updateCourse(courseId, {
+      'subject_name': subjectName,
+      'university_id': universityId,
+      'first_term_id': firstTermId,
+    });
+  }
+
+  @override
   Future<void> updateCourseMaterialsLink(String courseId, String? link) {
     return _remote.updateCourse(courseId, {'materials_link': link});
   }

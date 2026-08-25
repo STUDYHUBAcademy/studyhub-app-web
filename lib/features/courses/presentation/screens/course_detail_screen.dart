@@ -14,6 +14,7 @@ import '../../../students/presentation/widgets/student_source_fields.dart';
 import '../../../tutors/domain/entities/tutor.dart';
 import '../../../tutors/presentation/providers/tutors_providers.dart';
 import '../../../universities/domain/entities/term.dart';
+import '../../../universities/domain/entities/university.dart';
 import '../../../universities/presentation/providers/universities_providers.dart';
 import '../../domain/entities/course.dart';
 import '../../domain/entities/course_demo.dart';
@@ -191,6 +192,105 @@ class _CourseDetailBody extends ConsumerWidget {
         .updateCourseMaterialsLink(course.id, link);
   }
 
+  Future<void> _editCourseDetails(BuildContext context, WidgetRef ref) async {
+    final universities = await ref.read(universitiesProvider.future);
+    final terms = await ref.read(termsProvider.future);
+    if (!context.mounted) return;
+
+    final subjectController = TextEditingController(text: course.subjectName);
+    University? selectedUniversity = universities
+        .where((u) => u.id == course.universityId)
+        .firstOrNull;
+    Term? selectedTerm = terms
+        .where((t) => t.id == course.firstTermId)
+        .firstOrNull;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          title: const Text('تعديل بيانات الكورس'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: subjectController,
+                    decoration: const InputDecoration(labelText: 'اسم المادة'),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<University?>(
+                    initialValue: selectedUniversity,
+                    decoration: const InputDecoration(labelText: 'الجامعة'),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('بدون'),
+                      ),
+                      ...universities.map(
+                        (u) =>
+                            DropdownMenuItem(value: u, child: Text(u.name)),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => selectedUniversity = v),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<Term?>(
+                    initialValue: selectedTerm,
+                    decoration: const InputDecoration(
+                      labelText: 'الفصل الدراسي الأول',
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('بدون'),
+                      ),
+                      ...terms.map(
+                        (t) =>
+                            DropdownMenuItem(value: t, child: Text(t.name)),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => selectedTerm = v),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: subjectController.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(context, true),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true || subjectController.text.trim().isEmpty) return;
+    await ref
+        .read(coursesRepositoryProvider)
+        .updateCourseDetails(
+          courseId: course.id,
+          subjectName: subjectController.text.trim(),
+          universityId: selectedUniversity?.id,
+          firstTermId: selectedTerm?.id,
+        );
+  }
+
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final confirmed = await confirmWithPassword(
       context,
@@ -232,12 +332,24 @@ class _CourseDetailBody extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    course.subjectName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          course.subjectName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 20),
+                        tooltip: 'تعديل بيانات الكورس',
+                        onPressed: () => _editCourseDetails(context, ref),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -829,16 +941,25 @@ class _DemosSection extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<Tutor>(
-                    initialValue: selectedTutor,
-                    decoration: const InputDecoration(labelText: 'المدرس'),
-                    items: tutors
-                        .map(
-                          (t) =>
-                              DropdownMenuItem(value: t, child: Text(t.name)),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() => selectedTutor = v),
+                  Autocomplete<Tutor>(
+                    displayStringForOption: (t) => t.name,
+                    optionsBuilder: (value) {
+                      if (value.text.isEmpty) return tutors;
+                      final q = value.text.toLowerCase();
+                      return tutors.where(
+                        (t) => t.name.toLowerCase().contains(q),
+                      );
+                    },
+                    onSelected: (t) => setState(() => selectedTutor = t),
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onSubmit) =>
+                            TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              decoration: const InputDecoration(
+                                labelText: 'المدرس (اكتب للبحث)',
+                              ),
+                            ),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
@@ -1372,6 +1493,7 @@ class _CourseTermsSection extends ConsumerWidget {
                           courseTerm: ct,
                           termName: termNames[ct.termId] ?? '؟',
                           tutorId: course.tutorId,
+                          courseArchived: course.status == 'archived',
                         ),
                       )
                       .toList(),
@@ -1390,11 +1512,13 @@ class _CourseTermCard extends ConsumerWidget {
     required this.courseTerm,
     required this.termName,
     required this.tutorId,
+    required this.courseArchived,
   });
 
   final CourseTerm courseTerm;
   final String termName;
   final String? tutorId;
+  final bool courseArchived;
 
   Future<void> _recordPayment(
     BuildContext context,
@@ -1652,7 +1776,10 @@ class _CourseTermCard extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => _EnrollmentsSheet(courseTerm: courseTerm),
+      builder: (context) => _EnrollmentsSheet(
+        courseTerm: courseTerm,
+        courseArchived: courseArchived,
+      ),
     );
   }
 }
@@ -1912,9 +2039,13 @@ const _paymentMethodLabels = {
 };
 
 class _EnrollmentsSheet extends ConsumerWidget {
-  const _EnrollmentsSheet({required this.courseTerm});
+  const _EnrollmentsSheet({
+    required this.courseTerm,
+    required this.courseArchived,
+  });
 
   final CourseTerm courseTerm;
+  final bool courseArchived;
 
   Future<void> _addEnrollment(BuildContext context, WidgetRef ref) async {
     final students = ref.read(studentsProvider).valueOrNull ?? [];
@@ -2127,9 +2258,11 @@ class _EnrollmentsSheet extends ConsumerWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () => _addEnrollment(context, ref),
+                  onPressed: courseArchived
+                      ? null
+                      : () => _addEnrollment(context, ref),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('إضافة'),
+                  label: Text(courseArchived ? 'الكورس مؤرشف' : 'إضافة'),
                 ),
               ],
             ),

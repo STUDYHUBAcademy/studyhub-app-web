@@ -58,6 +58,8 @@ class CourseDetailScreen extends ConsumerWidget {
   }
 }
 
+const _demoTelegramChannel = 'https://t.me/+_FTM7hBP961mNWM8';
+
 class _CourseDetailBody extends ConsumerWidget {
   const _CourseDetailBody({required this.course});
 
@@ -99,11 +101,25 @@ class _CourseDetailBody extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('لينك الديمو'),
-        content: TextField(
-          controller: controller,
-          textDirection: TextDirection.ltr,
-          decoration: const InputDecoration(labelText: 'لينك (تيليجرام مثلاً)'),
-          autofocus: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              textDirection: TextDirection.ltr,
+              decoration: const InputDecoration(
+                labelText: 'لينك الفيديو من تيليجرام',
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => launchWebLink(_demoTelegramChannel),
+              icon: const Icon(Icons.send_outlined, size: 18),
+              label: const Text('افتح قناة الديمو على تيليجرام'),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -121,6 +137,48 @@ class _CourseDetailBody extends ConsumerWidget {
     await ref
         .read(coursesRepositoryProvider)
         .updateCourseDemoLink(course.id, link.isEmpty ? null : link);
+  }
+
+  Future<void> _editGroupLink(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: course.groupLink ?? '');
+    final link = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('لينك جروب الكورس'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              textDirection: TextDirection.ltr,
+              decoration: const InputDecoration(labelText: 'لينك جروب تيليجرام'),
+              autofocus: true,
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => launchWebLink('https://t.me'),
+              icon: const Icon(Icons.send_outlined, size: 18),
+              label: const Text('افتح تيليجرام'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+    if (link == null) return;
+    await ref
+        .read(coursesRepositoryProvider)
+        .updateCourseGroupLink(course.id, link.isEmpty ? null : link);
   }
 
   Future<void> _browseDrive(BuildContext context, WidgetRef ref) async {
@@ -320,6 +378,51 @@ class _CourseDetailBody extends ConsumerWidget {
                   : () => _editDemoLink(context, ref),
             ),
           ),
+          if (course.status != 'planning') ...[
+            const SizedBox(height: 10),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.groups_outlined, color: AppColors.accent),
+                title: Text(
+                  course.groupLink == null || course.groupLink!.isEmpty
+                      ? 'إضافة لينك جروب الكورس'
+                      : 'جروب الكورس',
+                ),
+                subtitle:
+                    course.groupLink != null && course.groupLink!.isNotEmpty
+                    ? Text(
+                        course.groupLink!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      )
+                    : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (course.groupLink != null &&
+                        course.groupLink!.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.share_outlined, size: 20),
+                        tooltip: 'مشاركة اللينك',
+                        onPressed: () => shareLink(course.groupLink!),
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 20),
+                      onPressed: () => _editGroupLink(context, ref),
+                    ),
+                  ],
+                ),
+                onTap:
+                    (course.groupLink != null && course.groupLink!.isNotEmpty)
+                    ? () => launchWebLink(course.groupLink!)
+                    : () => _editGroupLink(context, ref),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           _DemosSection(course: course),
           const SizedBox(height: 10),

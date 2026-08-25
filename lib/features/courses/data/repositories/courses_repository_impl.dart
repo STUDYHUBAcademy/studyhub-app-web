@@ -87,6 +87,11 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
+  Future<void> updateCourseGroupLink(String courseId, String? link) {
+    return _remote.updateCourse(courseId, {'group_link': link});
+  }
+
+  @override
   Future<void> deleteCourse(String courseId) => _remote.deleteCourse(courseId);
 
   @override

@@ -1141,7 +1141,29 @@ class _DemoRow extends ConsumerWidget {
               ],
             ),
           ),
-          if (demo.outcome == 'pending') ...[
+          if (demo.outcome != 'pending')
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _outcomeLabels[demo.outcome] ?? demo.outcome,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ),
+            ),
+          if (demo.outcome != 'selected')
             IconButton(
               icon: const Icon(
                 Icons.check_circle_outline,
@@ -1152,28 +1174,13 @@ class _DemoRow extends ConsumerWidget {
                   .setDemoOutcome(demo, 'selected'),
               tooltip: 'اختيار',
             ),
+          if (demo.outcome != 'rejected')
             IconButton(
               icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
               onPressed: () => ref
                   .read(coursesRepositoryProvider)
                   .setDemoOutcome(demo, 'rejected'),
               tooltip: 'رفض',
-            ),
-          ] else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                _outcomeLabels[demo.outcome] ?? demo.outcome,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
             ),
         ],
       ),

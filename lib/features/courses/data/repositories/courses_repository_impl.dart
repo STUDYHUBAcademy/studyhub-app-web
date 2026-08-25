@@ -131,7 +131,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
         'tutor_id': demo.tutorId,
         'status': 'active',
       });
-      await _remote.rejectOtherPendingDemos(demo.courseId, demo.id);
+      await _remote.rejectOtherDemos(demo.courseId, demo.id);
     }
   }
 

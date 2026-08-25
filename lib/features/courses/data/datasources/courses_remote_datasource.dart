@@ -77,15 +77,11 @@ class CoursesRemoteDatasource {
         .eq('id', demoId);
   }
 
-  Future<void> rejectOtherPendingDemos(
-    String courseId,
-    String exceptDemoId,
-  ) async {
+  Future<void> rejectOtherDemos(String courseId, String exceptDemoId) async {
     await _client
         .from('course_demos')
         .update({'outcome': 'rejected'})
         .eq('course_id', courseId)
-        .eq('outcome', 'pending')
         .neq('id', exceptDemoId);
   }
 

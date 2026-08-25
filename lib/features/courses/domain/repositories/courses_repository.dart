@@ -56,9 +56,11 @@ abstract class CoursesRepository {
     required String subjectName,
     String? universityId,
     String? firstTermId,
+    String? demoLink,
   });
   Future<void> updateCourseStatus(String courseId, String status);
   Future<void> updateCourseMaterialsLink(String courseId, String? link);
+  Future<void> updateCourseDemoLink(String courseId, String? link);
   Future<void> deleteCourse(String courseId);
 
   Future<void> addDemo({

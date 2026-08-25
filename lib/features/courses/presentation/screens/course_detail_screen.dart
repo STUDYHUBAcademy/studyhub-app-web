@@ -93,6 +93,36 @@ class _CourseDetailBody extends ConsumerWidget {
         .updateCourseMaterialsLink(course.id, link.isEmpty ? null : link);
   }
 
+  Future<void> _editDemoLink(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: course.demoLink ?? '');
+    final link = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('لينك الديمو'),
+        content: TextField(
+          controller: controller,
+          textDirection: TextDirection.ltr,
+          decoration: const InputDecoration(labelText: 'لينك (تيليجرام مثلاً)'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+    if (link == null) return;
+    await ref
+        .read(coursesRepositoryProvider)
+        .updateCourseDemoLink(course.id, link.isEmpty ? null : link);
+  }
+
   Future<void> _browseDrive(BuildContext context, WidgetRef ref) async {
     final link = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (context) => const DriveFolderPickerScreen()),
@@ -245,6 +275,49 @@ class _CourseDetailBody extends ConsumerWidget {
                       course.materialsLink!.isNotEmpty)
                   ? () => launchWebLink(course.materialsLink!)
                   : () => _editMaterialsLink(context, ref),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(
+                Icons.smart_display_outlined,
+                color: AppColors.accent,
+              ),
+              title: Text(
+                course.demoLink == null || course.demoLink!.isEmpty
+                    ? 'إضافة لينك الديمو'
+                    : 'لينك الديمو',
+              ),
+              subtitle: course.demoLink != null && course.demoLink!.isNotEmpty
+                  ? Text(
+                      course.demoLink!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    )
+                  : null,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (course.demoLink != null && course.demoLink!.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.share_outlined, size: 20),
+                      tooltip: 'مشاركة اللينك',
+                      onPressed: () => shareLink(course.demoLink!),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    onPressed: () => _editDemoLink(context, ref),
+                  ),
+                ],
+              ),
+              onTap: (course.demoLink != null && course.demoLink!.isNotEmpty)
+                  ? () => launchWebLink(course.demoLink!)
+                  : () => _editDemoLink(context, ref),
             ),
           ),
           const SizedBox(height: 10),

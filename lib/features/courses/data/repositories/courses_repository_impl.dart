@@ -59,11 +59,13 @@ class CoursesRepositoryImpl implements CoursesRepository {
     required String subjectName,
     String? universityId,
     String? firstTermId,
+    String? demoLink,
   }) async {
     final row = await _remote.addCourse({
       'subject_name': subjectName,
       'university_id': universityId,
       'first_term_id': firstTermId,
+      'demo_link': demoLink,
       'status': 'planning',
     });
     return Course.fromJson(row);
@@ -77,6 +79,11 @@ class CoursesRepositoryImpl implements CoursesRepository {
   @override
   Future<void> updateCourseMaterialsLink(String courseId, String? link) {
     return _remote.updateCourse(courseId, {'materials_link': link});
+  }
+
+  @override
+  Future<void> updateCourseDemoLink(String courseId, String? link) {
+    return _remote.updateCourse(courseId, {'demo_link': link});
   }
 
   @override

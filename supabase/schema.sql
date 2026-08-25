@@ -132,10 +132,12 @@ create table if not exists courses (
   tutor_id uuid references tutors(id) on delete set null,
   first_term_id uuid references terms(id) on delete set null,
   materials_link text,
+  demo_link text,
   status text not null default 'planning' check (status in ('planning','active','inactive','archived')),
   created_at timestamptz not null default now()
 );
 alter table courses add column if not exists materials_link text;
+alter table courses add column if not exists demo_link text;
 
 -- 'demo' was a confusing course-level status (demos already have their own
 -- section/table) — collapse it back into 'planning' and tighten the check.

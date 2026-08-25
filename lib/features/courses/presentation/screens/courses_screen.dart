@@ -33,6 +33,7 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
 
   Future<void> _createCourse(BuildContext context, WidgetRef ref) async {
     final subjectController = TextEditingController();
+    final demoLinkController = TextEditingController();
     final universities = await ref.read(universitiesProvider.future);
     final terms = await ref.read(termsProvider.future);
     if (!context.mounted) return;
@@ -189,6 +190,14 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                       onChanged: (_) => setState(() {}),
                     ),
                   ],
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: demoLinkController,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'لينك الديمو (اختياري)',
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -238,6 +247,9 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
           subjectName: subjectController.text.trim(),
           universityId: universityId,
           firstTermId: termId,
+          demoLink: demoLinkController.text.trim().isEmpty
+              ? null
+              : demoLinkController.text.trim(),
         );
     if (context.mounted) context.push('/courses/${course.id}');
   }

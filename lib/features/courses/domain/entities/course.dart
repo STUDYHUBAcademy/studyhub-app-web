@@ -6,6 +6,7 @@ class Course {
     this.tutorId,
     this.firstTermId,
     this.materialsLink,
+    this.demoLink,
     required this.status,
     required this.createdAt,
   });
@@ -16,6 +17,7 @@ class Course {
   final String? tutorId;
   final String? firstTermId;
   final String? materialsLink;
+  final String? demoLink;
   final String status; // planning | active | inactive | archived
   final DateTime createdAt;
 
@@ -27,6 +29,7 @@ class Course {
       tutorId: json['tutor_id'] as String?,
       firstTermId: json['first_term_id'] as String?,
       materialsLink: json['materials_link'] as String?,
+      demoLink: json['demo_link'] as String?,
       status: json['status'] as String? ?? 'planning',
       createdAt: DateTime.parse(json['created_at'] as String),
     );

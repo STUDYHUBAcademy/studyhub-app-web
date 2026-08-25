@@ -158,9 +158,9 @@ class _CourseDetailBody extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: () => launchWebLink('https://t.me'),
+              onPressed: () => launchWebLink('tg://'),
               icon: const Icon(Icons.send_outlined, size: 18),
-              label: const Text('افتح تيليجرام'),
+              label: const Text('افتح تطبيق تيليجرام'),
             ),
           ],
         ),

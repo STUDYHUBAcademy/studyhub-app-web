@@ -423,6 +423,129 @@ select 'general', 'عام'
 where not exists (select 1 from chat_channels where type = 'general');
 
 -- ─────────────────────────────────────────────────────────────────────────
+-- Activity log — a running feed of "what just happened" across the app,
+-- populated by triggers so it can never fall out of sync with the tables it
+-- describes. Read-only from the client; every row comes from a trigger.
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists activity_log (
+  id uuid primary key default gen_random_uuid(),
+  message text not null,
+  created_at timestamptz not null default now()
+);
+
+create or replace function log_course_created() returns trigger
+language plpgsql as $$
+begin
+  insert into activity_log (message)
+  values ('📚 تم إنشاء كورس: ' || new.subject_name);
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_course_created on courses;
+create trigger trg_log_course_created
+  after insert on courses
+  for each row execute function log_course_created();
+
+create or replace function log_transaction_created() returns trigger
+language plpgsql as $$
+declare
+  type_label text := case new.type when 'income' then '📥 إيراد' else '📤 مصروف' end;
+begin
+  insert into activity_log (message)
+  values (type_label || ': ' || new.amount || ' ' || new.currency || ' (' || new.category || ')');
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_transaction_created on transactions;
+create trigger trg_log_transaction_created
+  after insert on transactions
+  for each row execute function log_transaction_created();
+
+create or replace function log_tutor_ledger_created() returns trigger
+language plpgsql as $$
+declare
+  tname text;
+  type_label text;
+begin
+  select name into tname from tutors where id = new.tutor_id;
+  type_label := case new.type
+    when 'deposit' then 'إيداع'
+    when 'final_settlement' then 'تسوية نهائية'
+    when 'revshare_payout' then 'دفعة نسبة إيراد'
+    when 'private_session_payout' then 'دفعة حصة خاصة'
+    else new.type
+  end;
+  insert into activity_log (message)
+  values ('💸 ' || type_label || ' للمدرس ' || coalesce(tname, '؟') || ': ' || new.amount || ' ' || new.currency);
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_tutor_ledger_created on tutor_ledger;
+create trigger trg_log_tutor_ledger_created
+  after insert on tutor_ledger
+  for each row execute function log_tutor_ledger_created();
+
+create or replace function log_enrollment_created() returns trigger
+language plpgsql as $$
+declare
+  sname text;
+  subj text;
+begin
+  select name into sname from students where id = new.student_id;
+  select c.subject_name into subj
+    from course_terms ct join courses c on c.id = ct.course_id
+    where ct.id = new.course_term_id;
+  insert into activity_log (message)
+  values ('🧑‍🎓 انضم الطالب ' || coalesce(sname, '؟') || ' لكورس ' || coalesce(subj, '؟'));
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_enrollment_created on enrollments;
+create trigger trg_log_enrollment_created
+  after insert on enrollments
+  for each row execute function log_enrollment_created();
+
+create or replace function log_task_created() returns trigger
+language plpgsql as $$
+begin
+  insert into activity_log (message) values ('✅ مهمة جديدة: ' || new.title);
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_task_created on tasks;
+create trigger trg_log_task_created
+  after insert on tasks
+  for each row execute function log_task_created();
+
+create or replace function log_tutor_added() returns trigger
+language plpgsql as $$
+begin
+  insert into activity_log (message) values ('👨‍🏫 مدرس جديد في القائمة: ' || new.name);
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_tutor_added on tutors;
+create trigger trg_log_tutor_added
+  after insert on tutors
+  for each row execute function log_tutor_added();
+
+create or replace function log_owner_withdrawal_created() returns trigger
+language plpgsql as $$
+declare
+  pname text;
+begin
+  select name into pname from profiles where id = new.profile_id;
+  insert into activity_log (message)
+  values ('💰 سحب رصيد: ' || coalesce(pname, '؟') || ' سحب ' || new.amount || ' ' || new.currency);
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_owner_withdrawal_created on owner_withdrawals;
+create trigger trg_log_owner_withdrawal_created
+  after insert on owner_withdrawals
+  for each row execute function log_owner_withdrawal_created();
+
+-- ─────────────────────────────────────────────────────────────────────────
 -- Row Level Security
 -- Every table: the 2 owners get full access. tutor_applications additionally
 -- allows anonymous INSERT only (the public tutor registration form).
@@ -434,7 +557,7 @@ declare
     'profiles','universities','terms','tutors','tutor_status_log','subject_catalog_custom',
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
     'tutor_ledger','private_sessions','transactions','tasks','academy_expenses','owner_withdrawals',
-    'chat_channels','chat_messages','tutor_applications'
+    'chat_channels','chat_messages','tutor_applications','activity_log'
   ];
 begin
   foreach t in array owner_tables loop

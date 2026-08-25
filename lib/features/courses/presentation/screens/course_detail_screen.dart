@@ -362,6 +362,19 @@ class _CourseDetailBody extends ConsumerWidget {
                       fontSize: 13,
                     ),
                   ),
+                  if (course.status == 'planning' &&
+                      (course.demoLink == null ||
+                          course.demoLink!.isEmpty)) ...[
+                    const SizedBox(height: 6),
+                    const Text(
+                      '🎬 منتظر إضافة تجريبي',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.info,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   Wrap(
                     spacing: 8,

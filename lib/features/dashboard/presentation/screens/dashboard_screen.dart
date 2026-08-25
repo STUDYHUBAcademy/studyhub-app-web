@@ -6,6 +6,8 @@ import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/acquisition_source.dart';
+import '../../../../core/widgets/realtime_error_view.dart';
+import '../../../activity_log/presentation/providers/activity_log_providers.dart';
 import '../../../courses/domain/entities/enrollment.dart';
 import '../../../courses/domain/entities/tutor_payment.dart';
 import '../../../courses/presentation/providers/courses_providers.dart';
@@ -429,11 +431,94 @@ class DashboardScreen extends ConsumerWidget {
         .where((l) => l.currency != 'SAR' && l.equivalentSarAmount == null)
         .toList();
 
+    // A course still in planning with no demo link means the tutor hasn't
+    // sent a trial lesson yet — surface it so it doesn't get forgotten.
+    final coursesMissingDemo = courses
+        .where(
+          (c) =>
+              c.status == 'planning' &&
+              (c.demoLink == null || c.demoLink!.isEmpty),
+        )
+        .toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('📊 الرئيسية')),
+      appBar: AppBar(
+        title: const Text('📊 الرئيسية'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'آخر التحديثات',
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: AppColors.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (context) => const _ActivityLogSheet(),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (coursesMissingDemo.isNotEmpty) ...[
+            Card(
+              color: AppColors.info.withValues(alpha: 0.12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AppColors.info, width: 1),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => context.push('/courses'),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.movie_creation_outlined,
+                        color: AppColors.info,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'منتظر إضافة تجريبي: ${coursesMissingDemo.length} كورس',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                color: AppColors.info,
+                              ),
+                            ),
+                            Text(
+                              coursesMissingDemo
+                                  .map((c) => c.subjectName)
+                                  .join(' • '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_left_rounded,
+                        color: AppColors.textMuted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           if (missingSarEquivalent.isNotEmpty) ...[
             Card(
               color: AppColors.error.withValues(alpha: 0.12),
@@ -1795,6 +1880,91 @@ class _MissingSarEquivalentSheet extends ConsumerWidget {
                         child: const Text('تحديد'),
                       ),
                     ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityLogSheet extends ConsumerWidget {
+  const _ActivityLogSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entriesAsync = ref.watch(activityLogProvider);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'آخر التحديثات',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+            Flexible(
+              child: entriesAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (err, st) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: RealtimeErrorView(
+                    error: err,
+                    onRetry: () => ref.invalidate(activityLogProvider),
+                  ),
+                ),
+                data: (entries) {
+                  if (entries.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Text(
+                          'مفيش تحديثات لسه',
+                          style: TextStyle(color: AppColors.textMuted),
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: entries.length,
+                    separatorBuilder: (context, i) =>
+                        const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      final entry = entries[i];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.message,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              intl.DateFormat(
+                                'd MMM yyyy — h:mm a',
+                                'ar',
+                              ).format(entry.createdAt),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
               ),

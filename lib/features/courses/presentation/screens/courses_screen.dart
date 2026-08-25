@@ -470,6 +470,9 @@ class _CourseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = courseStatusColors[course.status] ?? AppColors.textMuted;
     final subtitleParts = [?universityName, ?tutorName];
+    final missingDemo =
+        course.status == 'planning' &&
+        (course.demoLink == null || course.demoLink!.isEmpty);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -478,11 +481,28 @@ class _CourseTile extends StatelessWidget {
           course.subjectName,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        subtitle: Text(
-          subtitleParts.isEmpty
-              ? 'بدون جامعة أو مدرس بعد'
-              : subtitleParts.join(' • '),
-          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              subtitleParts.isEmpty
+                  ? 'بدون جامعة أو مدرس بعد'
+                  : subtitleParts.join(' • '),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
+            ),
+            if (missingDemo)
+              const Text(
+                '🎬 منتظر إضافة تجريبي',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.info,
+                ),
+              ),
+          ],
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

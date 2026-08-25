@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'core/network/supabase_client.dart';
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
+import 'features/sessions/presentation/providers/sessions_providers.dart';
+
+class StudyHubApp extends ConsumerStatefulWidget {
+  const StudyHubApp({super.key});
+
+  @override
+  ConsumerState<StudyHubApp> createState() => _StudyHubAppState();
+}
+
+class _StudyHubAppState extends ConsumerState<StudyHubApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Android pauses Dart timers while the app is backgrounded, so the
+    // access token's usual proactive refresh (~1h before expiry) can miss
+    // its window during a long stay in the background. Left alone, every
+    // realtime subscription then fails with "Token has expired" as soon as
+    // the app resumes, and every screen shows that raw error instead of its
+    // data — so force a refresh right when the app comes back to front.
+    if (state == AppLifecycleState.resumed) {
+      _recoverSession();
+    }
+  }
+
+  Future<void> _recoverSession() async {
+    try {
+      if (AppSupabase.client.auth.currentSession == null) return;
+      await AppSupabase.client.auth.refreshSession();
+    } catch (_) {
+      // No valid refresh token left — the router's auth redirect will send
+      // the owner back to /login on its own; nothing more to do here.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(sessionsReminderSyncProvider);
+    return MaterialApp.router(
+      title: 'StudyHub Academy',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.dark,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
+      routerConfig: appRouter,
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+    );
+  }
+}

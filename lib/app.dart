@@ -68,6 +68,21 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) {
+        // The dense card/chip layouts throughout this app assume roughly
+        // the platform-default text size. Left unclamped, a device with a
+        // large system font/display-size setting scales text (and the
+        // glyph-based Icons that share its font size) enough to overflow
+        // those layouts — clamp to a range that still respects the user's
+        // preference without breaking the UI.
+        final scaler = MediaQuery.textScalerOf(
+          context,
+        ).clamp(minScaleFactor: 0.85, maxScaleFactor: 1.2);
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: scaler),
+          child: child!,
+        );
+      },
     );
   }
 }

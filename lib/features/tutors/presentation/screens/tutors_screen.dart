@@ -259,35 +259,39 @@ class _ApplicationsTab extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      '${pending.length} طلب في الانتظار',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: AppColors.textMuted,
+                  Text(
+                    '${pending.length} طلب في الانتظار',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () =>
+                            _deleteAlreadyInRoster(context, ref, pending),
+                        icon: const Icon(
+                          Icons.playlist_remove,
+                          size: 18,
+                          color: AppColors.error,
+                        ),
+                        label: const Text(
+                          'حذف الموجودين بالفعل',
+                          style: TextStyle(color: AppColors.error),
+                        ),
                       ),
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () =>
-                        _deleteAlreadyInRoster(context, ref, pending),
-                    icon: const Icon(
-                      Icons.playlist_remove,
-                      size: 18,
-                      color: AppColors.error,
-                    ),
-                    label: const Text(
-                      'حذف الموجودين بالفعل',
-                      style: TextStyle(color: AppColors.error),
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => _promoteAll(context, ref, pending),
-                    icon: const Icon(Icons.done_all, size: 18),
-                    label: const Text('قبول الكل'),
+                      TextButton.icon(
+                        onPressed: () => _promoteAll(context, ref, pending),
+                        icon: const Icon(Icons.done_all, size: 18),
+                        label: const Text('قبول الكل'),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -2173,6 +2173,8 @@ class _EnrollmentsSheet extends ConsumerWidget {
     String currency = courseTerm.studentPriceCurrency;
     String paymentMethod = 'cash';
     String? formError;
+    final tabbyTamaraFeePct =
+        ref.read(appSettingsProvider).valueOrNull?.tabbyTamaraFeePct ?? 8;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -2235,12 +2237,12 @@ class _EnrollmentsSheet extends ConsumerWidget {
                     initialMarketerName: selectedStudent?.marketerName,
                     initialCommissionPct: selectedStudent?.commissionPct,
                     initialCommissionAmount: selectedStudent?.commissionAmount,
-                    onChanged: (source, marketer, pct, amount) {
+                    onChanged: (source, marketer, pct, amount) => setState(() {
                       enrollmentSource = source;
                       enrollmentMarketer = marketer;
                       enrollmentCommissionPct = pct;
                       enrollmentCommissionAmount = amount;
-                    },
+                    }),
                   ),
                   if (formError != null) ...[
                     const SizedBox(height: 8),
@@ -2262,6 +2264,7 @@ class _EnrollmentsSheet extends ConsumerWidget {
                           decoration: const InputDecoration(
                             labelText: 'المبلغ',
                           ),
+                          onChanged: (_) => setState(() {}),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -2290,6 +2293,39 @@ class _EnrollmentsSheet extends ConsumerWidget {
                         .toList(),
                     onChanged: (v) =>
                         setState(() => paymentMethod = v ?? 'cash'),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final gross = double.tryParse(amountController.text);
+                      if (gross == null || gross <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      final gatewayFee =
+                          (paymentMethod == 'tabby' ||
+                              paymentMethod == 'tamara')
+                          ? gross * tabbyTamaraFeePct / 100
+                          : 0.0;
+                      final marketerFee = enrollmentSource == 'marketer'
+                          ? (enrollmentCommissionAmount ?? 0)
+                          : 0.0;
+                      if (gatewayFee <= 0 && marketerFee <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      final net = gross - gatewayFee - marketerFee;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(
+                          'الصافي بعد الخصومات: ${net.toStringAsFixed(0)} $currency'
+                          '${gatewayFee > 0 ? ' (رسوم بوابة ${gatewayFee.toStringAsFixed(0)})' : ''}'
+                          '${marketerFee > 0 ? ' (عمولة مسوق ${marketerFee.toStringAsFixed(0)})' : ''}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

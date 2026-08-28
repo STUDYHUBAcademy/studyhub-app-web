@@ -373,12 +373,13 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                           initialMarketerName: initial.marketerName,
                           initialCommissionPct: initial.commissionPct,
                           initialCommissionAmount: initial.commissionAmount,
-                          onChanged: (source, marketer, pct, amount) {
-                            sessionSource = source;
-                            sessionMarketer = marketer;
-                            sessionCommissionPct = pct;
-                            sessionCommissionAmount = amount;
-                          },
+                          onChanged: (source, marketer, pct, amount) =>
+                              setState(() {
+                                sessionSource = source;
+                                sessionMarketer = marketer;
+                                sessionCommissionPct = pct;
+                                sessionCommissionAmount = amount;
+                              }),
                         );
                       },
                     ),
@@ -495,6 +496,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                           decoration: const InputDecoration(
                             labelText: 'إجمالي المبلغ من الطالب',
                           ),
+                          onChanged: (_) => setState(() {}),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -578,6 +580,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                     decoration: const InputDecoration(
                       labelText: 'المبلغ المتنازل عنه',
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -592,6 +595,38 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                         )
                         .toList(),
                     onChanged: (v) => setState(() => writeOffReason = v),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final gross = double.tryParse(
+                        studentTotalController.text.trim(),
+                      );
+                      if (gross == null || gross <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      final writeOff =
+                          double.tryParse(writeOffController.text.trim()) ?? 0;
+                      final marketerFee = sessionSource == 'marketer'
+                          ? (sessionCommissionAmount ?? 0)
+                          : 0.0;
+                      if (writeOff <= 0 && marketerFee <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      final net = gross - writeOff - marketerFee;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(
+                          'الصافي بعد الخصومات: ${net.toStringAsFixed(0)} $studentCurrency'
+                          '${writeOff > 0 ? ' (خصم/رسوم ${writeOff.toStringAsFixed(0)})' : ''}'
+                          '${marketerFee > 0 ? ' (عمولة مسوق ${marketerFee.toStringAsFixed(0)})' : ''}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const Divider(height: 24),
                   const Text(

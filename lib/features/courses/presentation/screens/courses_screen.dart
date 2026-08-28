@@ -283,30 +283,38 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    initialValue: _universityFilter,
-                    isDense: true,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'الجامعة',
-                      isDense: true,
+                  child: Autocomplete<University>(
+                    displayStringForOption: (u) => u.name,
+                    initialValue: TextEditingValue(
+                      text:
+                          universities
+                              .where((u) => u.id == _universityFilter)
+                              .firstOrNull
+                              ?.name ??
+                          '',
                     ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text(
-                          'كل الجامعات',
-                          overflow: TextOverflow.ellipsis,
+                    optionsBuilder: (value) {
+                      if (value.text.isEmpty) return universities;
+                      final q = value.text.toLowerCase();
+                      return universities.where(
+                        (u) => u.name.toLowerCase().contains(q),
+                      );
+                    },
+                    onSelected: (u) => setState(() => _universityFilter = u.id),
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onSubmit) => TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          onChanged: (v) {
+                            if (v.isEmpty && _universityFilter != null) {
+                              setState(() => _universityFilter = null);
+                            }
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'الجامعة (بحث)',
+                            isDense: true,
+                          ),
                         ),
-                      ),
-                      ...universities.map(
-                        (u) => DropdownMenuItem(
-                          value: u.id,
-                          child: Text(u.name, overflow: TextOverflow.ellipsis),
-                        ),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _universityFilter = v),
                   ),
                 ),
                 const SizedBox(width: 8),

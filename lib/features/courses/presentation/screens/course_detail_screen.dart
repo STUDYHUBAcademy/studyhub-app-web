@@ -740,10 +740,23 @@ class _CourseSummaryCard extends ConsumerWidget {
     // A cancelled enrollment only counts what was actually paid before the
     // cancellation — not the full amount they were originally contracted for.
     // Any write-off (discount / gateway fee) always reduces what's owed.
-    double effectiveAmount(Enrollment e) {
+    final paidByEnrollment = <String, double>{
+      for (final e in allEnrollments)
+        e.id: (ref.watch(enrollmentPaymentsProvider(e.id)).valueOrNull ?? [])
+            .fold<double>(0, (sum, p) => sum + p.amount),
+    };
+    double contractedAmount(Enrollment e) {
       if (e.status != 'cancelled') return e.effectiveAmount;
-      return (ref.watch(enrollmentPaymentsProvider(e.id)).valueOrNull ?? [])
-          .fold<double>(0, (sum, p) => sum + p.amount);
+      return paidByEnrollment[e.id] ?? 0;
+    }
+
+    // Cash actually collected — revenue and revshare cost both key off this,
+    // not the contracted price, since neither can be counted before the
+    // money has actually come in.
+    double cashCollected(Enrollment e) {
+      final contracted = contractedAmount(e);
+      final paid = paidByEnrollment[e.id] ?? 0;
+      return paid < contracted ? paid : contracted;
     }
 
     final revenue = <String, double>{};
@@ -751,7 +764,7 @@ class _CourseSummaryCard extends ConsumerWidget {
     for (final ct in courseTerms) {
       final ctEnrollments = termEnrollments[ct.id] ?? [];
       for (final e in ctEnrollments) {
-        revenue[e.currency] = (revenue[e.currency] ?? 0) + effectiveAmount(e);
+        revenue[e.currency] = (revenue[e.currency] ?? 0) + cashCollected(e);
       }
       if (ct.pricingModel == 'flat') {
         if (ct.tutorFlatFee != null) {
@@ -762,7 +775,7 @@ class _CourseSummaryCard extends ConsumerWidget {
         final byCurrency = <String, double>{};
         for (final e in ctEnrollments) {
           byCurrency[e.currency] =
-              (byCurrency[e.currency] ?? 0) + effectiveAmount(e);
+              (byCurrency[e.currency] ?? 0) + cashCollected(e);
         }
         byCurrency.forEach((currency, amount) {
           cost[currency] =

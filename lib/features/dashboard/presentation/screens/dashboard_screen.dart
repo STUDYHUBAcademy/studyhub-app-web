@@ -112,17 +112,28 @@ class DashboardScreen extends ConsumerWidget {
       return paidByEnrollment[e.id] ?? 0;
     }
 
-    // Revenue — every currency, matching how course/tutor summaries already
-    // count full contracted amounts (not just what's been collected so far).
+    // Cash actually in hand for this enrollment — never more than what's
+    // contracted (a stray overpayment shouldn't inflate revenue).
+    double cashCollected(Enrollment e) {
+      final contracted = effectiveEnrollmentAmount(e);
+      final paid = paidByEnrollment[e.id] ?? 0;
+      return paid < contracted ? paid : contracted;
+    }
+
+    // Revenue — money actually collected, not the full contracted amount.
+    // Net profit/sadaqah/owner split are all derived from this, and you
+    // can't distribute or tithe on money that hasn't come in yet.
     final revenue = <String, double>{};
     for (final e in enrollments) {
-      revenue[e.currency] =
-          (revenue[e.currency] ?? 0) + effectiveEnrollmentAmount(e);
+      revenue[e.currency] = (revenue[e.currency] ?? 0) + cashCollected(e);
     }
     for (final s in sessions) {
       if (s.status == 'cancelled' || s.studentTotal == null) continue;
+      final received = s.studentPaid
+          ? (s.studentAmountReceived ?? s.effectiveTotal)
+          : 0.0;
       revenue[s.studentTotalCurrency] =
-          (revenue[s.studentTotalCurrency] ?? 0) + s.effectiveTotal;
+          (revenue[s.studentTotalCurrency] ?? 0) + received;
     }
 
     var tutorPaidSar = 0.0;
@@ -145,6 +156,9 @@ class DashboardScreen extends ConsumerWidget {
     final unpaidCourseItems = <_UnpaidItem>[];
 
     void addCommission(ResolvedSource resolved, double base) {
+      // No cash collected yet on this deal means no commission is owed on
+      // it yet either — matches revenue being cash-basis above.
+      if (base <= 0) return;
       double amount;
       if (resolved.source == 'marketer') {
         // Marketer commission is a flat negotiated amount, not a cut of
@@ -196,7 +210,7 @@ class DashboardScreen extends ConsumerWidget {
           studentCommissionPct: student?.commissionPct,
           studentCommissionAmount: student?.commissionAmount,
         ),
-        effectiveAmount,
+        cashCollected(e),
       );
     }
     var unpaidSessionsSar = 0.0;
@@ -206,7 +220,7 @@ class DashboardScreen extends ConsumerWidget {
         continue;
       }
       final total = s.effectiveTotal;
-      final received = s.studentPaid ? (s.studentAmountReceived ?? total) : 0;
+      final received = s.studentPaid ? (s.studentAmountReceived ?? total) : 0.0;
       final remaining = total - received;
       if (remaining > 0.01) {
         unpaidSessionsSar += remaining;
@@ -222,7 +236,7 @@ class DashboardScreen extends ConsumerWidget {
           ),
         );
       }
-      if (s.studentId != null && total > 0) {
+      if (s.studentId != null && received > 0) {
         final student = studentById[s.studentId];
         addCommission(
           resolveAcquisitionSource(
@@ -235,7 +249,7 @@ class DashboardScreen extends ConsumerWidget {
             studentCommissionPct: student?.commissionPct,
             studentCommissionAmount: student?.commissionAmount,
           ),
-          total,
+          received,
         );
       }
     }
@@ -340,10 +354,13 @@ class DashboardScreen extends ConsumerWidget {
           );
         }
       } else {
+        // Revshare owed to the tutor is their cut of money actually
+        // collected from students, not the full contracted price — you
+        // can't split revenue that hasn't come in yet.
         final byCurrency = <String, double>{};
         for (final e in enrollments.where((e) => e.courseTermId == ct.id)) {
           byCurrency[e.currency] =
-              (byCurrency[e.currency] ?? 0) + effectiveEnrollmentAmount(e);
+              (byCurrency[e.currency] ?? 0) + cashCollected(e);
         }
         byCurrency.forEach((currency, amount) {
           addCost(

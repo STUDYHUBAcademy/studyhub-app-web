@@ -627,7 +627,10 @@ class _SubjectsTabState extends ConsumerState<_SubjectsTab> {
         Expanded(
           child: tutorsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, st) => Center(child: Text('حصل خطأ: $err')),
+            error: (err, st) => RealtimeErrorView(
+              error: err,
+              onRetry: () => ref.invalidate(tutorsProvider),
+            ),
             data: (tutors) {
               final bySubject = <String, _SubjectEntry>{};
               for (final tutor in tutors) {

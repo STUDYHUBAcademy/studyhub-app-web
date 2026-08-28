@@ -1118,9 +1118,9 @@ class _DemosSection extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (err, st) => Text(
-                'حصل خطأ: $err',
-                style: const TextStyle(color: AppColors.error),
+              error: (err, st) => RealtimeErrorView(
+                error: err,
+                onRetry: () => ref.invalidate(courseDemosProvider(course.id)),
               ),
               data: (demos) {
                 if (demos.isEmpty) {
@@ -1550,9 +1550,9 @@ class _CourseTermsSection extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (err, st) => Text(
-                'حصل خطأ: $err',
-                style: const TextStyle(color: AppColors.error),
+              error: (err, st) => RealtimeErrorView(
+                error: err,
+                onRetry: () => ref.invalidate(courseTermsProvider(course.id)),
               ),
               data: (courseTerms) {
                 if (courseTerms.isEmpty) {
@@ -2437,9 +2437,10 @@ class _EnrollmentsSheet extends ConsumerWidget {
                   padding: EdgeInsets.all(20),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (err, st) => Text(
-                  'حصل خطأ: $err',
-                  style: const TextStyle(color: AppColors.error),
+                error: (err, st) => RealtimeErrorView(
+                  error: err,
+                  onRetry: () =>
+                      ref.invalidate(enrollmentsProvider(courseTerm.id)),
                 ),
                 data: (enrollments) {
                   if (enrollments.isEmpty) {

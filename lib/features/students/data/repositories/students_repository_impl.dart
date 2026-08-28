@@ -54,7 +54,7 @@ class StudentsRepositoryImpl implements StudentsRepository {
       'acquisition_source': acquisitionSource,
       'marketer_name': marketerName,
       'commission_pct': commissionPct,
-      'commission_amount': commissionAmount,
+      'commission_amount': ?commissionAmount,
     });
   }
 

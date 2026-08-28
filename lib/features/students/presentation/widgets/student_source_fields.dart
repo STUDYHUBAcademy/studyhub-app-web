@@ -121,7 +121,6 @@ class _StudentSourceFieldsState extends ConsumerState<StudentSourceFields> {
               _emit();
             },
             fieldViewBuilder: (context, controller, focusNode, onSubmit) {
-              controller.text = _marketerNameController.text;
               return TextField(
                 controller: controller,
                 focusNode: focusNode,

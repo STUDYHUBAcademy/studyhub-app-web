@@ -35,6 +35,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
     String? marketerName,
     double? commissionPct,
     double? commissionAmount,
+    bool omitNullCommissionAmount = false,
   }) {
     return {
       'tutor_id': tutorId,
@@ -56,7 +57,13 @@ class SessionsRepositoryImpl implements SessionsRepository {
       'acquisition_source': acquisitionSource,
       'marketer_name': marketerName,
       'commission_pct': commissionPct,
-      'commission_amount': commissionAmount,
+      // Omitted rather than sent as null on insert: Supabase's schema cache
+      // for this column has been intermittently stale, and leaving it out
+      // entirely when unused sidesteps that instead of erroring. Updates
+      // still send null explicitly so switching away from a marketer
+      // actually clears a previous amount.
+      if (!omitNullCommissionAmount || commissionAmount != null)
+        'commission_amount': commissionAmount,
     };
   }
 
@@ -104,6 +111,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
       marketerName: marketerName,
       commissionPct: commissionPct,
       commissionAmount: commissionAmount,
+      omitNullCommissionAmount: true,
     )..['status'] = 'scheduled';
     final row = await _remote.addSession(payload);
     return PrivateSession.fromJson(row);

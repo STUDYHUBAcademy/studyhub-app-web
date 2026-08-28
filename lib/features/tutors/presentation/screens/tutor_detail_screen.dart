@@ -254,9 +254,11 @@ class _TutorDetailBody extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(vertical: 8),
                           child: Center(child: CircularProgressIndicator()),
                         ),
-                        error: (err, st) => Text(
-                          'حصل خطأ: $err',
-                          style: const TextStyle(color: AppColors.error),
+                        error: (err, st) => RealtimeErrorView(
+                          error: err,
+                          onRetry: () => ref.invalidate(
+                            tutorStatusHistoryProvider(tutor.id),
+                          ),
                         ),
                         data: (periods) {
                           if (periods.isEmpty) {
@@ -345,9 +347,11 @@ class _TutorDetailBody extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(vertical: 8),
                           child: Center(child: CircularProgressIndicator()),
                         ),
-                        error: (err, st) => Text(
-                          'حصل خطأ: $err',
-                          style: const TextStyle(color: AppColors.error),
+                        error: (err, st) => RealtimeErrorView(
+                          error: err,
+                          onRetry: () => ref.invalidate(
+                            tutorFinanceSummaryProvider(tutor.id),
+                          ),
                         ),
                         data: (summary) =>
                             _FinanceSummaryView(summary: summary),

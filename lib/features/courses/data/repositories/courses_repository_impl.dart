@@ -213,7 +213,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
       'acquisition_source': acquisitionSource,
       'marketer_name': marketerName,
       'commission_pct': commissionPct,
-      'commission_amount': commissionAmount,
+      'commission_amount': ?commissionAmount,
     });
   }
 

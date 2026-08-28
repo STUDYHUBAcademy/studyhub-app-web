@@ -2650,6 +2650,24 @@ Future<void> _recordEnrollmentPayment(
   String? formError;
   final tabbyTamaraFeePct =
       ref.read(appSettingsProvider).valueOrNull?.tabbyTamaraFeePct ?? 8;
+  final student = ref
+      .read(studentsProvider)
+      .valueOrNull
+      ?.where((s) => s.id == enrollment.studentId)
+      .firstOrNull;
+  final resolvedSource = resolveAcquisitionSource(
+    overrideSource: enrollment.acquisitionSource,
+    overrideMarketerName: enrollment.marketerName,
+    overrideCommissionPct: enrollment.commissionPct,
+    overrideCommissionAmount: enrollment.commissionAmount,
+    studentSource: student?.acquisitionSource,
+    studentMarketerName: student?.marketerName,
+    studentCommissionPct: student?.commissionPct,
+    studentCommissionAmount: student?.commissionAmount,
+  );
+  final marketerFee = resolvedSource.source == 'marketer'
+      ? (resolvedSource.commissionAmount ?? 0)
+      : 0.0;
 
   final saved = await showDialog<bool>(
     context: context,
@@ -2785,15 +2803,16 @@ Future<void> _recordEnrollmentPayment(
                       final writeOff =
                           double.tryParse(writeOffController.text.trim()) ?? 0;
                       final gross = entered ?? remaining;
-                      if (gross <= 0 && writeOff <= 0) {
+                      if (gross <= 0 && writeOff <= 0 && marketerFee <= 0) {
                         return const SizedBox.shrink();
                       }
-                      final net = gross - writeOff;
+                      final net = gross - writeOff - marketerFee;
                       return Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: Text(
-                          'الصافي المتوقع: ${net.toStringAsFixed(0)} ${enrollment.currency}'
-                          '${writeOff > 0 ? ' (بعد خصم ${writeOff.toStringAsFixed(0)})' : ''}',
+                          'الصافي بعد كل الخصومات: ${net.toStringAsFixed(0)} ${enrollment.currency}'
+                          '${writeOff > 0 ? ' (رسوم/خصم ${writeOff.toStringAsFixed(0)})' : ''}'
+                          '${marketerFee > 0 ? ' (عمولة مسوق ${marketerFee.toStringAsFixed(0)})' : ''}',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -2836,10 +2855,10 @@ Future<void> _recordEnrollmentPayment(
                   setState(() => formError = 'اختار سبب الخصم/الرسوم');
                   return;
                 }
-                if (amount + writeOff > remaining + 0.01) {
+                if (amount > remaining + 0.01) {
                   setState(
                     () => formError =
-                        'المبلغ والخصم مع بعض أكبر من المتبقي (${_fmtMoney(remaining)} ${enrollment.currency})',
+                        'المبلغ أكبر من المتبقي (${_fmtMoney(remaining)} ${enrollment.currency})',
                   );
                   return;
                 }
@@ -2856,11 +2875,16 @@ Future<void> _recordEnrollmentPayment(
   if (saved != true) return;
   final amount = double.tryParse(amountController.text.trim()) ?? 0;
   final writeOff = double.tryParse(writeOffController.text.trim()) ?? 0;
+  // `amount` is the gross figure this payment settles (e.g. the full price);
+  // any write-off (a Tabby/Tamara cut, a discount...) comes out of that same
+  // gross, so what actually landed — and what gets recorded as received — is
+  // the amount net of it, not the gross itself.
+  final netReceived = amount - writeOff;
   final repo = ref.read(coursesRepositoryProvider);
-  if (amount > 0) {
+  if (netReceived > 0) {
     await repo.addEnrollmentPayment(
       enrollmentId: enrollment.id,
-      amount: amount,
+      amount: netReceived,
       currency: enrollment.currency,
       paymentMethod: paymentMethod,
       notes: notesController.text.trim().isEmpty

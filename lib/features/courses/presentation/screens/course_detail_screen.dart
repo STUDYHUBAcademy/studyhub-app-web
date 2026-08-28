@@ -2673,6 +2673,20 @@ Future<void> _recordEnrollmentPayment(
           }
         }
 
+        // A gateway fee is tied to whichever gateway is selected — switching
+        // payment method makes any previously auto-suggested fee stale, so
+        // clear it before (maybe) re-suggesting one for the new method.
+        // A manually-picked reason like "discount"/"other" is left alone.
+        void syncGatewayFeeOnMethodChange() {
+          if (writeOffReason == 'gateway_fee') {
+            setState(() {
+              writeOffController.clear();
+              writeOffReason = null;
+            });
+          }
+          suggestGatewayFeeIfEmpty();
+        }
+
         void useGapAsWriteOff() {
           final entered = double.tryParse(amountController.text.trim()) ?? 0;
           final gap = remaining - entered;
@@ -2729,7 +2743,7 @@ Future<void> _recordEnrollmentPayment(
                         .toList(),
                     onChanged: (v) {
                       setState(() => paymentMethod = v ?? 'cash');
-                      suggestGatewayFeeIfEmpty();
+                      syncGatewayFeeOnMethodChange();
                     },
                   ),
                   const SizedBox(height: 12),

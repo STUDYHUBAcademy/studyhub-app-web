@@ -290,6 +290,18 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
       }
     }
 
+    // A gateway fee is tied to whichever gateway is selected — switching
+    // payment method makes any previously auto-suggested fee stale, so
+    // clear it before (maybe) re-suggesting one for the new method.
+    // A manually-picked reason like "discount"/"other" is left alone.
+    void syncGatewayFeeOnMethodChange() {
+      if (writeOffReason == 'gateway_fee') {
+        writeOffController.clear();
+        writeOffReason = null;
+      }
+      suggestGatewayFee();
+    }
+
     double durationHours() {
       final h = int.tryParse(hoursController.text.trim()) ?? 0;
       final m = int.tryParse(minutesController.text.trim()) ?? 0;
@@ -526,7 +538,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                         .toList(),
                     onChanged: (v) => setState(() {
                       paymentMethod = v ?? 'cash';
-                      suggestGatewayFee();
+                      syncGatewayFeeOnMethodChange();
                     }),
                   ),
                   const SizedBox(height: 12),

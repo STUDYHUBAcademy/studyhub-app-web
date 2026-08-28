@@ -49,6 +49,27 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
       // No valid refresh token left — the router's auth redirect will send
       // the owner back to /login on its own; nothing more to do here.
     }
+    // A tab/app backgrounded for a while (switching to another app to grab
+    // a link, leaving the browser tab in the background, etc.) can leave the
+    // realtime socket a zombie: the heartbeat that's supposed to notice a
+    // dead connection runs on a Dart Timer, which browsers/the OS throttle
+    // or pause while backgrounded, so it may never fire the miss that would
+    // trigger a reconnect. Every screen built on a `.stream()` then just
+    // hangs with no error and no data. Force a clean reconnect the moment
+    // we know we're back in the foreground instead of waiting for the
+    // heartbeat to eventually catch up.
+    try {
+      await AppSupabase.client.realtime.disconnect();
+      // The socket-level connect() call is package-internal, so force a
+      // fresh connection the supported way: subscribing any channel makes
+      // the client (re)open the shared socket, and every other channel that
+      // was already joined rejoins automatically once it's back up.
+      final pingChannel = AppSupabase.client.channel('resume-ping');
+      pingChannel.subscribe();
+      Future.delayed(const Duration(seconds: 3), () {
+        AppSupabase.client.removeChannel(pingChannel);
+      });
+    } catch (_) {}
   }
 
   @override

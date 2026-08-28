@@ -336,6 +336,120 @@ class _RosterTabState extends ConsumerState<_RosterTab> {
     super.dispose();
   }
 
+  Future<void> _addTutor() async {
+    final nameController = TextEditingController();
+    final phonePrimaryController = TextEditingController();
+    final phoneWhatsappController = TextEditingController();
+    final emailController = TextEditingController();
+    final notesController = TextEditingController();
+    String? formError;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          title: const Text('إضافة مدرس'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'اسم المدرس'),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phonePrimaryController,
+                    keyboardType: TextInputType.phone,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneWhatsappController,
+                    keyboardType: TextInputType.phone,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم الواتساب',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(labelText: 'الإيميل'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'ملاحظات (اختياري)',
+                    ),
+                  ),
+                  if (formError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      formError!,
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) {
+                  setState(() => formError = 'لازم تكتب اسم المدرس');
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              child: const Text('إضافة'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+    await ref
+        .read(tutorsRepositoryProvider)
+        .addTutor(
+          name: nameController.text.trim(),
+          phonePrimary: phonePrimaryController.text.trim().isEmpty
+              ? null
+              : phonePrimaryController.text.trim(),
+          phoneWhatsapp: phoneWhatsappController.text.trim().isEmpty
+              ? null
+              : phoneWhatsappController.text.trim(),
+          email: emailController.text.trim().isEmpty
+              ? null
+              : emailController.text.trim(),
+          notes: notesController.text.trim().isEmpty
+              ? null
+              : notesController.text.trim(),
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tutorsAsync = ref.watch(tutorsProvider);
@@ -343,7 +457,25 @@ class _RosterTabState extends ConsumerState<_RosterTab> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'القائمة',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _addTutor,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('إضافة مدرس'),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
           child: TextField(
             controller: _searchController,
             onChanged: (_) => setState(() {}),

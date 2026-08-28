@@ -69,6 +69,26 @@ class TutorsRepositoryImpl implements TutorsRepository {
   }
 
   @override
+  Future<Tutor> addTutor({
+    required String name,
+    String? phonePrimary,
+    String? phoneWhatsapp,
+    String? email,
+    String? notes,
+  }) async {
+    final row = await _remote.insertTutor({
+      'name': name,
+      'phone_primary': phonePrimary,
+      'phone_whatsapp': phoneWhatsapp,
+      'email': email,
+      'notes': notes,
+      'subjects': [],
+      'status': 'active',
+    });
+    return Tutor.fromJson(row);
+  }
+
+  @override
   Future<void> rejectApplication(String applicationId) {
     return _remote.updateApplicationStatus(applicationId, 'rejected');
   }

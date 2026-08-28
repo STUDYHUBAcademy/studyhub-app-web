@@ -400,6 +400,15 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                   }
                   return true;
                 }).toList();
+                bool missingDemo(Course c) =>
+                    c.status == 'planning' &&
+                    (c.demoLink == null || c.demoLink!.isEmpty);
+                filtered.sort((a, b) {
+                  final aMissing = missingDemo(a);
+                  final bMissing = missingDemo(b);
+                  if (aMissing == bMissing) return 0;
+                  return aMissing ? -1 : 1;
+                });
                 if (filtered.isEmpty) {
                   return const Center(
                     child: Text(

@@ -985,7 +985,7 @@ class _DemosSection extends ConsumerWidget {
             horizontal: 16,
             vertical: 24,
           ),
-          title: const Text('إضافة ديمو'),
+          title: const Text('إضافة مدرس'),
           content: SizedBox(
             width: double.maxFinite,
             child: SingleChildScrollView(
@@ -1102,14 +1102,14 @@ class _DemosSection extends ConsumerWidget {
               children: [
                 const Expanded(
                   child: Text(
-                    'الديمو',
+                    'المدرس',
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                   ),
                 ),
                 TextButton.icon(
                   onPressed: () => _addDemo(context, ref),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('إضافة'),
+                  label: const Text('إضافة مدرس'),
                 ),
               ],
             ),
@@ -1230,6 +1230,24 @@ class _DemoRow extends ConsumerWidget {
                   .setDemoOutcome(demo, 'rejected'),
               tooltip: 'رفض',
             ),
+          IconButton(
+            icon: const Icon(
+              Icons.delete_outline,
+              color: AppColors.textMuted,
+              size: 20,
+            ),
+            tooltip: 'حذف نهائي',
+            onPressed: () async {
+              final confirmed = await confirmWithPassword(
+                context,
+                title: 'حذف المدرس نهائيًا',
+                message:
+                    'هيتم حذف "$tutorName" نهائيًا من الديمو بتاع الكورس ده. اكتب كلمة المرور للتأكيد.',
+              );
+              if (!confirmed) return;
+              await ref.read(coursesRepositoryProvider).deleteDemo(demo);
+            },
+          ),
         ],
       ),
     );
@@ -1811,6 +1829,26 @@ class _CourseTermCard extends ConsumerWidget {
               OutlinedButton(
                 onPressed: () => _showEnrollments(context, ref, courseTerm),
                 child: const Text('الطلاب'),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
+                tooltip: 'حذف الفصل الدراسي نهائيًا',
+                onPressed: () async {
+                  final confirmed = await confirmWithPassword(
+                    context,
+                    title: 'حذف الفصل الدراسي نهائيًا',
+                    message:
+                        'هيتم حذف "$termName" وكل الطلاب المسجلين فيه نهائيًا. اكتب كلمة المرور للتأكيد.',
+                  );
+                  if (!confirmed) return;
+                  await ref
+                      .read(coursesRepositoryProvider)
+                      .deleteCourseTerm(courseTerm.id);
+                },
               ),
             ],
           ),

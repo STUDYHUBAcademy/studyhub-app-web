@@ -82,6 +82,11 @@ abstract class CoursesRepository {
   /// auto-rejects any other still-pending demos for the same course.
   Future<void> setDemoOutcome(CourseDemo demo, String outcome);
 
+  /// Removes this candidate entirely (not just marks them rejected). If they
+  /// were the selected tutor, also clears the course's tutor and reverts its
+  /// status to planning so it doesn't point at a tutor with no demo record.
+  Future<void> deleteDemo(CourseDemo demo);
+
   /// Defaults pricing_model to 'flat' for a course's first term and
   /// 'revshare' (10%) for any subsequent term, per the academy's standard deal.
   Future<void> addCourseTerm({
@@ -96,6 +101,10 @@ abstract class CoursesRepository {
   });
 
   Future<void> updateCourseTermStatus(String id, String status);
+
+  /// Permanently removes a term — cascades to its enrollments/students, so
+  /// callers should confirm with the owner before calling this.
+  Future<void> deleteCourseTerm(String id);
 
   Future<void> addEnrollment({
     required String courseTermId,

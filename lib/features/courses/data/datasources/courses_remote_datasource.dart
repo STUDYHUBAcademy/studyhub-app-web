@@ -85,6 +85,14 @@ class CoursesRemoteDatasource {
         .neq('id', exceptDemoId);
   }
 
+  Future<void> deleteDemo(String id) async {
+    await _client.from('course_demos').delete().eq('id', id);
+  }
+
+  Future<void> deleteCourseTerm(String id) async {
+    await _client.from('course_terms').delete().eq('id', id);
+  }
+
   Future<int> countExistingCourseTerms(String courseId) async {
     final rows = await _client
         .from('course_terms')

@@ -141,6 +141,17 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
+  Future<void> deleteDemo(CourseDemo demo) async {
+    await _remote.deleteDemo(demo.id);
+    if (demo.outcome == 'selected') {
+      await _remote.updateCourse(demo.courseId, {
+        'tutor_id': null,
+        'status': 'planning',
+      });
+    }
+  }
+
+  @override
   Future<void> addCourseTerm({
     required String courseId,
     required String termId,
@@ -175,6 +186,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
   Future<void> updateCourseTermStatus(String id, String status) {
     return _remote.updateCourseTerm(id, {'status': status});
   }
+
+  @override
+  Future<void> deleteCourseTerm(String id) => _remote.deleteCourseTerm(id);
 
   @override
   Future<void> addEnrollment({

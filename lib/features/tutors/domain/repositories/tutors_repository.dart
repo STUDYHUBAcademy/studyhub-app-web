@@ -14,6 +14,17 @@ abstract class TutorsRepository {
   /// booking a private session for a tutor who isn't in the roster yet.
   Future<Tutor> addTutorQuick(String name);
 
+  /// Adds a tutor straight to القائمة, skipping the public-form/application
+  /// flow entirely — for a tutor the owners already know and want in the
+  /// roster directly.
+  Future<Tutor> addTutor({
+    required String name,
+    String? phonePrimary,
+    String? phoneWhatsapp,
+    String? email,
+    String? notes,
+  });
+
   Future<void> rejectApplication(String applicationId);
 
   Future<void> setTutorStatus(String tutorId, String status);

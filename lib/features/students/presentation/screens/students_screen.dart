@@ -6,6 +6,7 @@ import '../../../../core/utils/contact_links.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../../domain/entities/student.dart';
 import '../providers/students_providers.dart';
+import '../widgets/student_source_fields.dart';
 
 Future<void> _editStudent(
   BuildContext context,
@@ -114,12 +115,113 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     super.dispose();
   }
 
+  Future<void> _addStudent() async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    String source = 'direct';
+    String? marketerName;
+    double? commissionPct;
+    double? commissionAmount;
+    String? formError;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          title: const Text('إضافة طالب'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'اسم الطالب'),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم الواتساب (اختياري)',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  StudentSourceFields(
+                    onChanged: (s, m, pct, amount) {
+                      source = s;
+                      marketerName = m;
+                      commissionPct = pct;
+                      commissionAmount = amount;
+                    },
+                  ),
+                  if (formError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      formError!,
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) {
+                  setState(() => formError = 'لازم تكتب اسم الطالب');
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              child: const Text('إضافة'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+    await ref
+        .read(studentsRepositoryProvider)
+        .addStudent(
+          name: nameController.text.trim(),
+          phoneWhatsapp: phoneController.text.trim().isEmpty
+              ? null
+              : phoneController.text.trim(),
+          acquisitionSource: source,
+          marketerName: marketerName,
+          commissionPct: commissionPct,
+          commissionAmount: commissionAmount,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final studentsAsync = ref.watch(studentsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('👨‍🎓 الطلاب')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addStudent,
+        child: const Icon(Icons.add),
+      ),
       body: Column(
         children: [
           Padding(

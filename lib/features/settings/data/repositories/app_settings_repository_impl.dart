@@ -20,4 +20,15 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   Future<void> updateTabbyTamaraFeePct(double pct) {
     return _remote.updateTabbyTamaraFeePct(pct);
   }
+
+  @override
+  Future<void> recordBackup({
+    required String spreadsheetId,
+    required String spreadsheetUrl,
+  }) {
+    return _remote.recordBackup(
+      spreadsheetId: spreadsheetId,
+      spreadsheetUrl: spreadsheetUrl,
+    );
+  }
 }

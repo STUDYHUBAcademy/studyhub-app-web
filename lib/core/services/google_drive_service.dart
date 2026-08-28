@@ -1,8 +1,8 @@
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+
+import 'google_auth.dart';
 
 class DriveFolder {
   const DriveFolder({required this.id, required this.name, this.webViewLink});
@@ -17,21 +17,7 @@ class GoogleDriveService {
     'https://www.googleapis.com/auth/drive.readonly',
   ];
 
-  static Future<void>? _initFuture;
-
-  Future<void> _ensureInitialized() {
-    return _initFuture ??= GoogleSignIn.instance
-        .initialize(
-          clientId: kIsWeb
-              ? dotenv.env['GOOGLE_WEB_CLIENT_ID']
-              : dotenv.env['GOOGLE_IOS_CLIENT_ID'],
-          serverClientId: kIsWeb ? null : dotenv.env['GOOGLE_WEB_CLIENT_ID'],
-        )
-        .catchError((Object e) {
-          _initFuture = null;
-          throw e;
-        });
-  }
+  Future<void> _ensureInitialized() => ensureGoogleSignInInitialized();
 
   /// Whether this platform supports calling [signInInteractively] directly
   /// (mobile). On web this is false — the user must sign in via the

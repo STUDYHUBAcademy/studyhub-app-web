@@ -15,4 +15,18 @@ class AppSettingsRemoteDatasource {
         .update({'tabby_tamara_fee_pct': pct})
         .eq('id', true);
   }
+
+  Future<void> recordBackup({
+    required String spreadsheetId,
+    required String spreadsheetUrl,
+  }) async {
+    await _client
+        .from('app_settings')
+        .update({
+          'backup_spreadsheet_id': spreadsheetId,
+          'backup_spreadsheet_url': spreadsheetUrl,
+          'last_backup_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', true);
+  }
 }

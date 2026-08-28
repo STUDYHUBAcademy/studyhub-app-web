@@ -198,6 +198,9 @@ create table if not exists app_settings (
   tabby_tamara_fee_pct numeric not null default 8,
   constraint app_settings_singleton check (id)
 );
+alter table app_settings add column if not exists backup_spreadsheet_id text;
+alter table app_settings add column if not exists backup_spreadsheet_url text;
+alter table app_settings add column if not exists last_backup_at timestamptz;
 insert into app_settings (id) values (true) on conflict (id) do nothing;
 
 -- ─────────────────────────────────────────────────────────────────────────

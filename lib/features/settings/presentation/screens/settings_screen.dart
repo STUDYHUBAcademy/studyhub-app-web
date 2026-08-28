@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/app_settings_providers.dart';
+import '../widgets/backup_card.dart';
 
 Future<void> _editTabbyTamaraFee(
   BuildContext context,
@@ -96,6 +97,8 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => _editTabbyTamaraFee(context, ref, tabbyTamaraFeePct),
             ),
           ),
+          const SizedBox(height: 8),
+          const BackupCard(),
           const SizedBox(height: 8),
           Card(
             child: ListTile(

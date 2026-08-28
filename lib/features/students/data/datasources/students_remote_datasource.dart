@@ -27,9 +27,6 @@ class StudentsRemoteDatasource {
           'acquisition_source': acquisitionSource,
           'marketer_name': marketerName,
           'commission_pct': commissionPct,
-          // Omitted rather than sent as null: Supabase's schema cache for
-          // this column has been intermittently stale, and leaving it out
-          // entirely when unused sidesteps that instead of erroring.
           'commission_amount': ?commissionAmount,
         })
         .select()

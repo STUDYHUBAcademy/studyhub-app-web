@@ -210,9 +210,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
       'currency': currency,
       'payment_status': paymentStatus,
       'payment_method': paymentMethod,
-      'acquisition_source': acquisitionSource,
-      'marketer_name': marketerName,
-      'commission_pct': commissionPct,
+      'acquisition_source': ?acquisitionSource,
+      'marketer_name': ?marketerName,
+      'commission_pct': ?commissionPct,
       'commission_amount': ?commissionAmount,
     });
   }

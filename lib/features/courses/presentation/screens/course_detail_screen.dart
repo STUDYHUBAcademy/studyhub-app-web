@@ -2680,6 +2680,13 @@ Future<void> _recordEnrollmentPayment(
           }
         }
 
+        // Fires once as soon as the dialog opens with tabby/tamara already
+        // selected (e.g. inherited from the enrollment), not just when the
+        // owner actively switches the dropdown to it.
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => suggestGatewayFeeIfEmpty(),
+        );
+
         return AlertDialog(
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -2699,6 +2706,7 @@ Future<void> _recordEnrollmentPayment(
                     decoration: InputDecoration(
                       labelText: 'المبلغ المستلم (${enrollment.currency})',
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -2753,6 +2761,7 @@ Future<void> _recordEnrollmentPayment(
                     decoration: const InputDecoration(
                       labelText: 'المبلغ المتنازل عنه',
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -2767,6 +2776,32 @@ Future<void> _recordEnrollmentPayment(
                         )
                         .toList(),
                     onChanged: (v) => setState(() => writeOffReason = v),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final entered = double.tryParse(
+                        amountController.text.trim(),
+                      );
+                      final writeOff =
+                          double.tryParse(writeOffController.text.trim()) ?? 0;
+                      final gross = entered ?? remaining;
+                      if (gross <= 0 && writeOff <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      final net = gross - writeOff;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(
+                          'الصافي المتوقع: ${net.toStringAsFixed(0)} ${enrollment.currency}'
+                          '${writeOff > 0 ? ' (بعد خصم ${writeOff.toStringAsFixed(0)})' : ''}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   if (formError != null) ...[
                     const SizedBox(height: 8),

@@ -54,16 +54,10 @@ class SessionsRepositoryImpl implements SessionsRepository {
       'material_note': materialNote,
       'write_off_amount': writeOffAmount,
       'write_off_reason': writeOffReason,
-      'acquisition_source': acquisitionSource,
-      'marketer_name': marketerName,
-      'commission_pct': commissionPct,
-      // Omitted rather than sent as null on insert: Supabase's schema cache
-      // for this column has been intermittently stale, and leaving it out
-      // entirely when unused sidesteps that instead of erroring. Updates
-      // still send null explicitly so switching away from a marketer
-      // actually clears a previous amount.
-      if (!omitNullCommissionAmount || commissionAmount != null)
-        'commission_amount': commissionAmount,
+      'acquisition_source': ?acquisitionSource,
+      'marketer_name': ?marketerName,
+      'commission_pct': ?commissionPct,
+      'commission_amount': ?commissionAmount,
     };
   }
 

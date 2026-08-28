@@ -93,6 +93,7 @@ Future<void> _editStudent(
         acquisitionSource: student.acquisitionSource,
         marketerName: student.marketerName,
         commissionPct: student.commissionPct,
+        commissionAmount: student.commissionAmount,
       );
 }
 

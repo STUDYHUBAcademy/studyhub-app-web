@@ -15,6 +15,7 @@ import '../../../students/domain/entities/student.dart';
 import '../../../students/presentation/providers/students_providers.dart';
 import '../../../students/presentation/widgets/student_source_fields.dart';
 import '../../../tutors/domain/entities/tutor.dart';
+import '../../../settings/presentation/providers/app_settings_providers.dart';
 import '../../../tutors/presentation/providers/tutors_providers.dart';
 import '../../domain/entities/private_session.dart';
 import '../providers/sessions_providers.dart';
@@ -211,6 +212,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
     String sessionSource = 'direct';
     String? sessionMarketer;
     double? sessionCommissionPct;
+    double? sessionCommissionAmount;
 
     ResolvedSource initialSourceFor(Student? selected) {
       final sameStudentAsExisting =
@@ -225,9 +227,13 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
         overrideCommissionPct: sameStudentAsExisting
             ? existing.commissionPct
             : null,
+        overrideCommissionAmount: sameStudentAsExisting
+            ? existing.commissionAmount
+            : null,
         studentSource: selected?.acquisitionSource,
         studentMarketerName: selected?.marketerName,
         studentCommissionPct: selected?.commissionPct,
+        studentCommissionAmount: selected?.commissionAmount,
       );
     }
 
@@ -269,6 +275,20 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
     var studentCurrency = existing?.studentTotalCurrency ?? 'SAR';
     var tutorCurrency = existing?.tutorPayoutCurrency ?? 'EGP';
     var paymentMethod = existing?.paymentMethod ?? 'cash';
+    final tabbyTamaraFeePct =
+        ref.read(appSettingsProvider).valueOrNull?.tabbyTamaraFeePct ?? 8;
+
+    void suggestGatewayFee() {
+      if (paymentMethod != 'tabby' && paymentMethod != 'tamara') return;
+      if (writeOffController.text.trim().isNotEmpty) return;
+      final total = double.tryParse(studentTotalController.text.trim());
+      if (total == null) return;
+      final fee = total * tabbyTamaraFeePct / 100;
+      if (fee > 0.01) {
+        writeOffController.text = fee.toStringAsFixed(0);
+        writeOffReason ??= 'gateway_fee';
+      }
+    }
 
     double durationHours() {
       final h = int.tryParse(hoursController.text.trim()) ?? 0;
@@ -352,10 +372,12 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                           initialSource: initial.source,
                           initialMarketerName: initial.marketerName,
                           initialCommissionPct: initial.commissionPct,
-                          onChanged: (source, marketer, pct) {
+                          initialCommissionAmount: initial.commissionAmount,
+                          onChanged: (source, marketer, pct, amount) {
                             sessionSource = source;
                             sessionMarketer = marketer;
                             sessionCommissionPct = pct;
+                            sessionCommissionAmount = amount;
                           },
                         );
                       },
@@ -500,8 +522,10 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) =>
-                        setState(() => paymentMethod = v ?? 'cash'),
+                    onChanged: (v) => setState(() {
+                      paymentMethod = v ?? 'cash';
+                      suggestGatewayFee();
+                    }),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -703,6 +727,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
               acquisitionSource: sessionSource,
               marketerName: sessionMarketer,
               commissionPct: sessionCommissionPct,
+              commissionAmount: sessionCommissionAmount,
             );
         studentId = newStudent.id;
       }
@@ -745,6 +770,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
               acquisitionSource: sessionSource,
               marketerName: sessionMarketer,
               commissionPct: sessionCommissionPct,
+              commissionAmount: sessionCommissionAmount,
             );
       } else {
         await ref
@@ -781,6 +807,7 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
               acquisitionSource: sessionSource,
               marketerName: sessionMarketer,
               commissionPct: sessionCommissionPct,
+              commissionAmount: sessionCommissionAmount,
             );
       }
     } catch (e) {

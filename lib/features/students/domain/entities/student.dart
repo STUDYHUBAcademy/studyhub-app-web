@@ -7,6 +7,7 @@ class Student {
     this.acquisitionSource = 'direct',
     this.marketerName,
     this.commissionPct,
+    this.commissionAmount,
   });
 
   final String id;
@@ -19,8 +20,13 @@ class Student {
   final String? marketerName;
 
   /// Percentage of the revenue this student generates that's owed as
-  /// commission — fixed at 1 for 'haraj', negotiated per-marketer otherwise.
+  /// commission — fixed at 1 for 'haraj'. Not used for 'marketer' (see
+  /// [commissionAmount]).
   final double? commissionPct;
+
+  /// Flat commission amount owed to the marketer — used instead of a
+  /// percentage since marketer deals are negotiated as a fixed sum.
+  final double? commissionAmount;
 
   factory Student.fromJson(Map<String, dynamic> json) {
     return Student(
@@ -31,6 +37,7 @@ class Student {
       acquisitionSource: json['acquisition_source'] as String? ?? 'direct',
       marketerName: json['marketer_name'] as String?,
       commissionPct: (json['commission_pct'] as num?)?.toDouble(),
+      commissionAmount: (json['commission_amount'] as num?)?.toDouble(),
     );
   }
 }

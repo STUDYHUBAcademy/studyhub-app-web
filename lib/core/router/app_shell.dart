@@ -6,7 +6,13 @@ class AppShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  static const _labels = ['الكورسات', 'المدرسين', 'الرئيسية', 'الحصص', 'المزيد'];
+  static const _labels = [
+    'الكورسات',
+    'المدرسين',
+    'الرئيسية',
+    'الحصص',
+    'المزيد',
+  ];
   static const _icons = [
     Icons.menu_book_rounded,
     Icons.groups_rounded,

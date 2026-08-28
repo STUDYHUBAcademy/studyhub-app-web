@@ -22,6 +22,7 @@ class StudentsRepositoryImpl implements StudentsRepository {
     String acquisitionSource = 'direct',
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) async {
     final row = await _remote.addStudent(
       name: name,
@@ -30,6 +31,7 @@ class StudentsRepositoryImpl implements StudentsRepository {
       acquisitionSource: acquisitionSource,
       marketerName: marketerName,
       commissionPct: commissionPct,
+      commissionAmount: commissionAmount,
     );
     return Student.fromJson(row);
   }
@@ -43,6 +45,7 @@ class StudentsRepositoryImpl implements StudentsRepository {
     required String acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) {
     return _remote.updateStudent(id, {
       'name': name,
@@ -51,6 +54,7 @@ class StudentsRepositoryImpl implements StudentsRepository {
       'acquisition_source': acquisitionSource,
       'marketer_name': marketerName,
       'commission_pct': commissionPct,
+      'commission_amount': commissionAmount,
     });
   }
 

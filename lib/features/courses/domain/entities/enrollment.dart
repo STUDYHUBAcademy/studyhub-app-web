@@ -19,6 +19,7 @@ class Enrollment {
     this.acquisitionSource,
     this.marketerName,
     this.commissionPct,
+    this.commissionAmount,
     required this.joinedAt,
   });
 
@@ -40,6 +41,10 @@ class Enrollment {
   final String? acquisitionSource;
   final String? marketerName;
   final double? commissionPct;
+
+  /// Flat commission owed to the marketer for this enrollment specifically —
+  /// used instead of [commissionPct] when the source is 'marketer'.
+  final double? commissionAmount;
   final DateTime joinedAt;
 
   /// What's actually still expected from the student — the contracted
@@ -61,6 +66,7 @@ class Enrollment {
       acquisitionSource: json['acquisition_source'] as String?,
       marketerName: json['marketer_name'] as String?,
       commissionPct: (json['commission_pct'] as num?)?.toDouble(),
+      commissionAmount: (json['commission_amount'] as num?)?.toDouble(),
       joinedAt: DateTime.parse(json['joined_at'] as String),
     );
   }

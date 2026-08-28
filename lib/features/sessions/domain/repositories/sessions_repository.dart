@@ -23,6 +23,7 @@ abstract class SessionsRepository {
     String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   });
 
   Future<void> updateSession({
@@ -46,6 +47,7 @@ abstract class SessionsRepository {
     String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   });
 
   Future<void> updateSessionStatus(String id, String status);

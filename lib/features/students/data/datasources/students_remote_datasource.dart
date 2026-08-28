@@ -16,6 +16,7 @@ class StudentsRemoteDatasource {
     String acquisitionSource = 'direct',
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) async {
     final row = await _client
         .from('students')
@@ -26,6 +27,7 @@ class StudentsRemoteDatasource {
           'acquisition_source': acquisitionSource,
           'marketer_name': marketerName,
           'commission_pct': commissionPct,
+          'commission_amount': commissionAmount,
         })
         .select()
         .single();

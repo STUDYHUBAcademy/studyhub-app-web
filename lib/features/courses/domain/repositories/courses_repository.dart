@@ -107,6 +107,7 @@ abstract class CoursesRepository {
     String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   });
 
   Future<void> updateEnrollmentPaymentStatus(String id, String status);
@@ -119,6 +120,7 @@ abstract class CoursesRepository {
     required String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   });
 
   /// Exactly one of [courseTermId] / [privateSessionId] should be set to

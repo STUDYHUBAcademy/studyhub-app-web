@@ -145,9 +145,18 @@ class DashboardScreen extends ConsumerWidget {
     final unpaidCourseItems = <_UnpaidItem>[];
 
     void addCommission(ResolvedSource resolved, double base) {
-      final pct = resolved.commissionPct;
-      if (pct == null || pct <= 0) return;
-      final amount = base * pct / 100;
+      double amount;
+      if (resolved.source == 'marketer') {
+        // Marketer commission is a flat negotiated amount, not a cut of
+        // this specific transaction — unlike haraj's percentage.
+        final flat = resolved.commissionAmount;
+        if (flat == null || flat <= 0) return;
+        amount = flat;
+      } else {
+        final pct = resolved.commissionPct;
+        if (pct == null || pct <= 0) return;
+        amount = base * pct / 100;
+      }
       commissionSar += amount;
       if (resolved.source == 'haraj') {
         harajCommissionSar += amount;
@@ -181,9 +190,11 @@ class DashboardScreen extends ConsumerWidget {
           overrideSource: e.acquisitionSource,
           overrideMarketerName: e.marketerName,
           overrideCommissionPct: e.commissionPct,
+          overrideCommissionAmount: e.commissionAmount,
           studentSource: student?.acquisitionSource,
           studentMarketerName: student?.marketerName,
           studentCommissionPct: student?.commissionPct,
+          studentCommissionAmount: student?.commissionAmount,
         ),
         effectiveAmount,
       );
@@ -218,9 +229,11 @@ class DashboardScreen extends ConsumerWidget {
             overrideSource: s.acquisitionSource,
             overrideMarketerName: s.marketerName,
             overrideCommissionPct: s.commissionPct,
+            overrideCommissionAmount: s.commissionAmount,
             studentSource: student?.acquisitionSource,
             studentMarketerName: student?.marketerName,
             studentCommissionPct: student?.commissionPct,
+            studentCommissionAmount: student?.commissionAmount,
           ),
           total,
         );
@@ -1937,8 +1950,7 @@ class _ActivityLogSheet extends ConsumerWidget {
                   return ListView.separated(
                     shrinkWrap: true,
                     itemCount: entries.length,
-                    separatorBuilder: (context, i) =>
-                        const Divider(height: 1),
+                    separatorBuilder: (context, i) => const Divider(height: 1),
                     itemBuilder: (context, i) {
                       final entry = entries[i];
                       return Padding(

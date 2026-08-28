@@ -37,12 +37,15 @@ class TasksRemoteDatasource {
     DateTime? dueDate,
     String? progressNote,
   }) async {
-    await _client.from('tasks').update({
-      'title': title,
-      'body': body,
-      'due_date': dueDate?.toIso8601String().split('T').first,
-      'progress_note': progressNote,
-    }).eq('id', id);
+    await _client
+        .from('tasks')
+        .update({
+          'title': title,
+          'body': body,
+          'due_date': dueDate?.toIso8601String().split('T').first,
+          'progress_note': progressNote,
+        })
+        .eq('id', id);
   }
 
   Future<void> deleteTask(String id) async {

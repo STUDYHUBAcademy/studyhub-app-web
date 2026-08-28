@@ -177,6 +177,30 @@ create table if not exists course_terms (
 );
 
 -- ─────────────────────────────────────────────────────────────────────────
+-- Marketers — a directory of referral marketers, so their commission and
+-- contact info can be reused instead of retyped on every enrollment/session.
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists marketers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  phone_whatsapp text,
+  default_commission_amount numeric,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- App-wide settings — a single row of editable defaults. `id` is pinned to
+-- `true` so there can only ever be one row (a classic Postgres singleton).
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists app_settings (
+  id boolean primary key default true,
+  tabby_tamara_fee_pct numeric not null default 8,
+  constraint app_settings_singleton check (id)
+);
+insert into app_settings (id) values (true) on conflict (id) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────────
 -- Students & enrollments
 -- ─────────────────────────────────────────────────────────────────────────
 create table if not exists students (
@@ -195,6 +219,7 @@ alter table students drop constraint if exists students_acquisition_source_check
 alter table students add constraint students_acquisition_source_check check (acquisition_source in ('direct','haraj','marketer'));
 alter table students add column if not exists marketer_name text;
 alter table students add column if not exists commission_pct numeric;
+alter table students add column if not exists commission_amount numeric;
 
 create table if not exists enrollments (
   id uuid primary key default gen_random_uuid(),
@@ -233,6 +258,7 @@ alter table enrollments drop constraint if exists enrollments_acquisition_source
 alter table enrollments add constraint enrollments_acquisition_source_check check (acquisition_source is null or acquisition_source in ('direct','haraj','marketer'));
 alter table enrollments add column if not exists marketer_name text;
 alter table enrollments add column if not exists commission_pct numeric;
+alter table enrollments add column if not exists commission_amount numeric;
 
 -- One row per installment received against a course enrollment, so a
 -- student's fee can be paid across multiple visits/dates instead of forcing
@@ -300,6 +326,7 @@ alter table private_sessions drop constraint if exists private_sessions_acquisit
 alter table private_sessions add constraint private_sessions_acquisition_source_check check (acquisition_source is null or acquisition_source in ('direct','haraj','marketer'));
 alter table private_sessions add column if not exists marketer_name text;
 alter table private_sessions add column if not exists commission_pct numeric;
+alter table private_sessions add column if not exists commission_amount numeric;
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Tutor ledger (deposits / payouts / revshare settlements)
@@ -561,7 +588,8 @@ declare
     'profiles','universities','terms','tutors','tutor_status_log','subject_catalog_custom',
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
     'tutor_ledger','private_sessions','transactions','tasks','academy_expenses','owner_withdrawals',
-    'chat_channels','chat_messages','tutor_applications','activity_log'
+    'chat_channels','chat_messages','tutor_applications','activity_log',
+    'marketers','app_settings'
   ];
 begin
   foreach t in array owner_tables loop

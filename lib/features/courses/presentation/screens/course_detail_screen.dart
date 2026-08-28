@@ -22,6 +22,7 @@ import '../../domain/entities/course_term.dart';
 import '../../domain/entities/enrollment.dart';
 import '../../domain/entities/enrollment_payment.dart';
 import '../../domain/entities/tutor_payment.dart';
+import '../../../settings/presentation/providers/app_settings_providers.dart';
 import '../course_status.dart';
 import '../providers/courses_providers.dart';
 import 'drive_folder_picker_screen.dart';
@@ -635,13 +636,16 @@ Future<void> _editEnrollmentSource(
     overrideSource: enrollment.acquisitionSource,
     overrideMarketerName: enrollment.marketerName,
     overrideCommissionPct: enrollment.commissionPct,
+    overrideCommissionAmount: enrollment.commissionAmount,
     studentSource: student?.acquisitionSource,
     studentMarketerName: student?.marketerName,
     studentCommissionPct: student?.commissionPct,
+    studentCommissionAmount: student?.commissionAmount,
   );
   var source = resolved.source;
   String? marketerName = resolved.marketerName;
   double? commissionPct = resolved.commissionPct;
+  double? commissionAmount = resolved.commissionAmount;
 
   final saved = await showDialog<bool>(
     context: context,
@@ -654,10 +658,12 @@ Future<void> _editEnrollmentSource(
           initialSource: source,
           initialMarketerName: marketerName,
           initialCommissionPct: commissionPct,
-          onChanged: (s, m, pct) {
+          initialCommissionAmount: commissionAmount,
+          onChanged: (s, m, pct, amount) {
             source = s;
             marketerName = m;
             commissionPct = pct;
+            commissionAmount = amount;
           },
         ),
       ),
@@ -681,6 +687,7 @@ Future<void> _editEnrollmentSource(
         acquisitionSource: source,
         marketerName: marketerName,
         commissionPct: commissionPct,
+        commissionAmount: commissionAmount,
       );
 }
 
@@ -2103,6 +2110,7 @@ class _EnrollmentsSheet extends ConsumerWidget {
     String enrollmentSource = 'direct';
     String? enrollmentMarketer;
     double? enrollmentCommissionPct;
+    double? enrollmentCommissionAmount;
     final amountController = TextEditingController(
       text: courseTerm.studentPrice?.toStringAsFixed(0) ?? '',
     );
@@ -2170,10 +2178,12 @@ class _EnrollmentsSheet extends ConsumerWidget {
                         selectedStudent?.acquisitionSource ?? 'direct',
                     initialMarketerName: selectedStudent?.marketerName,
                     initialCommissionPct: selectedStudent?.commissionPct,
-                    onChanged: (source, marketer, pct) {
+                    initialCommissionAmount: selectedStudent?.commissionAmount,
+                    onChanged: (source, marketer, pct, amount) {
                       enrollmentSource = source;
                       enrollmentMarketer = marketer;
                       enrollmentCommissionPct = pct;
+                      enrollmentCommissionAmount = amount;
                     },
                   ),
                   if (formError != null) ...[
@@ -2271,6 +2281,7 @@ class _EnrollmentsSheet extends ConsumerWidget {
               acquisitionSource: enrollmentSource,
               marketerName: enrollmentMarketer,
               commissionPct: enrollmentCommissionPct,
+              commissionAmount: enrollmentCommissionAmount,
             );
         studentId = newStudent.id;
       }
@@ -2285,6 +2296,7 @@ class _EnrollmentsSheet extends ConsumerWidget {
             acquisitionSource: enrollmentSource,
             marketerName: enrollmentMarketer,
             commissionPct: enrollmentCommissionPct,
+            commissionAmount: enrollmentCommissionAmount,
           );
     } catch (e) {
       if (context.mounted) {
@@ -2543,11 +2555,27 @@ Future<void> _recordEnrollmentPayment(
   final writeOffController = TextEditingController();
   String? writeOffReason;
   String? formError;
+  final tabbyTamaraFeePct =
+      ref.read(appSettingsProvider).valueOrNull?.tabbyTamaraFeePct ?? 8;
 
   final saved = await showDialog<bool>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
+        void suggestGatewayFeeIfEmpty() {
+          if (paymentMethod != 'tabby' && paymentMethod != 'tamara') return;
+          if (writeOffController.text.trim().isNotEmpty) return;
+          final base =
+              double.tryParse(amountController.text.trim()) ?? remaining;
+          final fee = base * tabbyTamaraFeePct / 100;
+          if (fee > 0.01) {
+            setState(() {
+              writeOffController.text = _fmtMoney(fee);
+              writeOffReason = 'gateway_fee';
+            });
+          }
+        }
+
         void useGapAsWriteOff() {
           final entered = double.tryParse(amountController.text.trim()) ?? 0;
           final gap = remaining - entered;
@@ -2591,8 +2619,10 @@ Future<void> _recordEnrollmentPayment(
                           ),
                         )
                         .toList(),
-                    onChanged: (v) =>
-                        setState(() => paymentMethod = v ?? 'cash'),
+                    onChanged: (v) {
+                      setState(() => paymentMethod = v ?? 'cash');
+                      suggestGatewayFeeIfEmpty();
+                    },
                   ),
                   const SizedBox(height: 12),
                   TextField(

@@ -59,13 +59,16 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
         return;
       }
       // Web: wait for the user to sign in via the rendered button.
-      _authSub ??= _service.authenticationEvents.listen((event) {
-        if (event is GoogleSignInAuthenticationEventSignIn) {
-          _onSignedIn(event.user);
-        }
-      }, onError: (Object e) {
-        if (mounted) setState(() => _signInError = e.toString());
-      });
+      _authSub ??= _service.authenticationEvents.listen(
+        (event) {
+          if (event is GoogleSignInAuthenticationEventSignIn) {
+            _onSignedIn(event.user);
+          }
+        },
+        onError: (Object e) {
+          if (mounted) setState(() => _signInError = e.toString());
+        },
+      );
       if (mounted) setState(() => _resolvingAccount = false);
     } catch (e) {
       if (mounted) {

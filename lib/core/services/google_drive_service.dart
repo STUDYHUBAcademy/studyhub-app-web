@@ -48,7 +48,8 @@ class GoogleDriveService {
   /// session/cookie). Returns null if a sign-in prompt is required.
   Future<GoogleSignInAccount?> attemptSilentSignIn() async {
     await _ensureInitialized();
-    final lightweight = GoogleSignIn.instance.attemptLightweightAuthentication();
+    final lightweight = GoogleSignIn.instance
+        .attemptLightweightAuthentication();
     return lightweight != null ? await lightweight : null;
   }
 

@@ -212,7 +212,9 @@ class TasksScreen extends ConsumerWidget {
 
     if (saved != true) return;
     if (titleController.text.trim().isEmpty) return;
-    await ref.read(tasksRepositoryProvider).updateTask(
+    await ref
+        .read(tasksRepositoryProvider)
+        .updateTask(
           id: task.id,
           title: titleController.text.trim(),
           body: bodyController.text.trim().isEmpty

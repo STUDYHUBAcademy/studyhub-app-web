@@ -9,6 +9,7 @@ abstract class StudentsRepository {
     String acquisitionSource = 'direct',
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   });
   Future<void> updateStudent({
     required String id,
@@ -18,6 +19,7 @@ abstract class StudentsRepository {
     required String acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   });
   Future<void> deleteStudent(String id);
 }

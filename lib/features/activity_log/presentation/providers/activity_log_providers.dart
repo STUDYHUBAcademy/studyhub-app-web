@@ -12,7 +12,9 @@ final activityLogRemoteDatasourceProvider =
     });
 
 final activityLogRepositoryProvider = Provider<ActivityLogRepository>((ref) {
-  return ActivityLogRepositoryImpl(ref.watch(activityLogRemoteDatasourceProvider));
+  return ActivityLogRepositoryImpl(
+    ref.watch(activityLogRemoteDatasourceProvider),
+  );
 });
 
 final activityLogProvider = StreamProvider<List<ActivityLogEntry>>((ref) {

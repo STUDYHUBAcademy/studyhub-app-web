@@ -26,6 +26,11 @@ const _moreItems = [
     icon: Icons.school_rounded,
     route: '/students',
   ),
+  MoreMenuItem(
+    title: '📣 المسوقين',
+    icon: Icons.campaign_rounded,
+    route: '/marketers',
+  ),
   MoreMenuItem(title: '💬 الشات', icon: Icons.forum_rounded, route: '/chat'),
   MoreMenuItem(
     title: '✅ المهام والملاحظات',

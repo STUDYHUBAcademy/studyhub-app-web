@@ -23,6 +23,7 @@ class PrivateSession {
     this.acquisitionSource,
     this.marketerName,
     this.commissionPct,
+    this.commissionAmount,
     required this.createdAt,
   });
 
@@ -59,6 +60,10 @@ class PrivateSession {
   final String? acquisitionSource;
   final String? marketerName;
   final double? commissionPct;
+
+  /// Flat commission owed to the marketer for this session specifically —
+  /// used instead of [commissionPct] when the source is 'marketer'.
+  final double? commissionAmount;
   final DateTime createdAt;
 
   /// What's actually still expected from the student for this session —
@@ -93,6 +98,7 @@ class PrivateSession {
       acquisitionSource: json['acquisition_source'] as String?,
       marketerName: json['marketer_name'] as String?,
       commissionPct: (json['commission_pct'] as num?)?.toDouble(),
+      commissionAmount: (json['commission_amount'] as num?)?.toDouble(),
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

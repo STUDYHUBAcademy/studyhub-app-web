@@ -34,6 +34,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
     String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) {
     return {
       'tutor_id': tutorId,
@@ -55,6 +56,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
       'acquisition_source': acquisitionSource,
       'marketer_name': marketerName,
       'commission_pct': commissionPct,
+      'commission_amount': commissionAmount,
     };
   }
 
@@ -79,6 +81,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
     String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) async {
     final payload = _payload(
       tutorId: tutorId,
@@ -100,6 +103,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
       acquisitionSource: acquisitionSource,
       marketerName: marketerName,
       commissionPct: commissionPct,
+      commissionAmount: commissionAmount,
     )..['status'] = 'scheduled';
     final row = await _remote.addSession(payload);
     return PrivateSession.fromJson(row);
@@ -127,6 +131,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
     String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) {
     return _remote.updateSession(
       id,
@@ -150,6 +155,7 @@ class SessionsRepositoryImpl implements SessionsRepository {
         acquisitionSource: acquisitionSource,
         marketerName: marketerName,
         commissionPct: commissionPct,
+        commissionAmount: commissionAmount,
       ),
     );
   }

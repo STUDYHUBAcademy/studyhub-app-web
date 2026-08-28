@@ -36,8 +36,7 @@ class Course {
       demoLink: json['demo_link'] as String?,
       groupLink: json['group_link'] as String?,
       status: json['status'] as String? ?? 'planning',
-      explanationStatus:
-          json['explanation_status'] as String? ?? 'not_started',
+      explanationStatus: json['explanation_status'] as String? ?? 'not_started',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

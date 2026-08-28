@@ -75,9 +75,8 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
         // glyph-based Icons that share its font size) enough to overflow
         // those layouts — clamp to a range that still respects the user's
         // preference without breaking the UI.
-        final scaler = MediaQuery.textScalerOf(
-          context,
-        ).clamp(minScaleFactor: 0.85, maxScaleFactor: 1.2);
+        final scaler = MediaQuery.textScalerOf(context)
+            .clamp(minScaleFactor: 0.85, maxScaleFactor: 1.2);
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: scaler),
           child: child!,

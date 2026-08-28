@@ -21,7 +21,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Stream<AppUser?> watchCurrentUser() {
-    return _remote.authStateChanges.map((state) => _toAppUser(state.session?.user));
+    return _remote.authStateChanges.map(
+      (state) => _toAppUser(state.session?.user),
+    );
   }
 
   @override

@@ -187,6 +187,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
     String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) {
     return _remote.addEnrollment({
       'course_term_id': courseTermId,
@@ -198,6 +199,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
       'acquisition_source': acquisitionSource,
       'marketer_name': marketerName,
       'commission_pct': commissionPct,
+      'commission_amount': commissionAmount,
     });
   }
 
@@ -217,11 +219,13 @@ class CoursesRepositoryImpl implements CoursesRepository {
     required String? acquisitionSource,
     String? marketerName,
     double? commissionPct,
+    double? commissionAmount,
   }) {
     return _remote.updateEnrollmentSource(id, {
       'acquisition_source': acquisitionSource,
       'marketer_name': marketerName,
       'commission_pct': commissionPct,
+      'commission_amount': commissionAmount,
     });
   }
 

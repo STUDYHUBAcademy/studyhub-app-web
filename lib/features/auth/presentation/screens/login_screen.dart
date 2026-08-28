@@ -32,12 +32,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     try {
-      await ref.read(authRepositoryProvider).signIn(
+      await ref
+          .read(authRepositoryProvider)
+          .signIn(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
     } catch (e) {
-      setState(() => _error = 'تعذر تسجيل الدخول — تأكد من البريد وكلمة المرور');
+      setState(
+        () => _error = 'تعذر تسجيل الدخول — تأكد من البريد وكلمة المرور',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -58,23 +62,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.school_rounded, size: 56, color: AppColors.accent),
+                    const Icon(
+                      Icons.school_rounded,
+                      size: 56,
+                      color: AppColors.accent,
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       'StudyHub Academy',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
+                      style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'تسجيل دخول الملّاك',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
+                      style: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(color: AppColors.textMuted),
                     ),
                     const SizedBox(height: 32),
@@ -86,8 +90,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
-                      validator: (v) =>
-                          (v == null || !v.contains('@')) ? 'ادخل بريد إلكتروني صحيح' : null,
+                      validator: (v) => (v == null || !v.contains('@'))
+                          ? 'ادخل بريد إلكتروني صحيح'
+                          : null,
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
@@ -98,8 +103,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         labelText: 'Password',
                         prefixIcon: Icon(Icons.lock_outline),
                       ),
-                      validator: (v) =>
-                          (v == null || v.length < 6) ? 'كلمة المرور قصيرة جدًا' : null,
+                      validator: (v) => (v == null || v.length < 6)
+                          ? 'كلمة المرور قصيرة جدًا'
+                          : null,
                       onFieldSubmitted: (_) => _submit(),
                     ),
                     if (_error != null) ...[
@@ -107,7 +113,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         _error!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.error, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 24),

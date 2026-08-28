@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/contact_links.dart';
+import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../../domain/entities/student.dart';
 import '../providers/students_providers.dart';
@@ -96,6 +97,28 @@ Future<void> _editStudent(
         commissionPct: student.commissionPct,
         commissionAmount: student.commissionAmount,
       );
+}
+
+Future<void> _deleteStudent(
+  BuildContext context,
+  WidgetRef ref,
+  Student student,
+) async {
+  final confirmed = await confirmWithPassword(
+    context,
+    title: 'حذف الطالب نهائيًا',
+    message:
+        'هيتم حذف "${student.name}" وكل تسجيلاته في الكورسات نهائيًا. اكتب كلمة المرور للتأكيد.',
+  );
+  if (!confirmed) return;
+  try {
+    await ref.read(studentsRepositoryProvider).deleteStudent(student.id);
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('حصل خطأ أثناء الحذف: $e')));
+    }
+  }
 }
 
 class StudentsScreen extends ConsumerStatefulWidget {
@@ -198,18 +221,26 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
 
     if (saved != true) return;
-    await ref
-        .read(studentsRepositoryProvider)
-        .addStudent(
-          name: nameController.text.trim(),
-          phoneWhatsapp: phoneController.text.trim().isEmpty
-              ? null
-              : phoneController.text.trim(),
-          acquisitionSource: source,
-          marketerName: marketerName,
-          commissionPct: commissionPct,
-          commissionAmount: commissionAmount,
+    try {
+      await ref
+          .read(studentsRepositoryProvider)
+          .addStudent(
+            name: nameController.text.trim(),
+            phoneWhatsapp: phoneController.text.trim().isEmpty
+                ? null
+                : phoneController.text.trim(),
+            acquisitionSource: source,
+            marketerName: marketerName,
+            commissionPct: commissionPct,
+            commissionAmount: commissionAmount,
+          );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حصل خطأ أثناء إضافة الطالب: $e')),
         );
+      }
+    }
   }
 
   @override
@@ -294,6 +325,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             IconButton(
                               icon: const Icon(Icons.edit_outlined, size: 20),
                               onPressed: () => _editStudent(context, ref, s),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: AppColors.textMuted,
+                              ),
+                              onPressed: () => _deleteStudent(context, ref, s),
                             ),
                           ],
                         ),

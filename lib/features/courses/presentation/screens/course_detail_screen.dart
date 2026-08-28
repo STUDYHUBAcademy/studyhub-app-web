@@ -153,7 +153,9 @@ class _CourseDetailBody extends ConsumerWidget {
             TextField(
               controller: controller,
               textDirection: TextDirection.ltr,
-              decoration: const InputDecoration(labelText: 'لينك جروب تيليجرام'),
+              decoration: const InputDecoration(
+                labelText: 'لينك جروب تيليجرام',
+              ),
               autofocus: true,
             ),
             const SizedBox(height: 10),
@@ -231,13 +233,9 @@ class _CourseDetailBody extends ConsumerWidget {
                     initialValue: selectedUniversity,
                     decoration: const InputDecoration(labelText: 'الجامعة'),
                     items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('بدون'),
-                      ),
+                      const DropdownMenuItem(value: null, child: Text('بدون')),
                       ...universities.map(
-                        (u) =>
-                            DropdownMenuItem(value: u, child: Text(u.name)),
+                        (u) => DropdownMenuItem(value: u, child: Text(u.name)),
                       ),
                     ],
                     onChanged: (v) => setState(() => selectedUniversity = v),
@@ -249,13 +247,9 @@ class _CourseDetailBody extends ConsumerWidget {
                       labelText: 'الفصل الدراسي الأول',
                     ),
                     items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('بدون'),
-                      ),
+                      const DropdownMenuItem(value: null, child: Text('بدون')),
                       ...terms.map(
-                        (t) =>
-                            DropdownMenuItem(value: t, child: Text(t.name)),
+                        (t) => DropdownMenuItem(value: t, child: Text(t.name)),
                       ),
                     ],
                     onChanged: (v) => setState(() => selectedTerm = v),
@@ -417,8 +411,7 @@ class _CourseDetailBody extends ConsumerWidget {
                     children: explanationStatusLabels.entries.map((e) {
                       final selected = course.explanationStatus == e.key;
                       final c =
-                          explanationStatusColors[e.key] ??
-                          AppColors.textMuted;
+                          explanationStatusColors[e.key] ?? AppColors.textMuted;
                       return ChoiceChip(
                         label: Text(e.value),
                         selected: selected,
@@ -543,7 +536,10 @@ class _CourseDetailBody extends ConsumerWidget {
             const SizedBox(height: 10),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.groups_outlined, color: AppColors.accent),
+                leading: const Icon(
+                  Icons.groups_outlined,
+                  color: AppColors.accent,
+                ),
                 title: Text(
                   course.groupLink == null || course.groupLink!.isEmpty
                       ? 'إضافة لينك جروب الكورس'
@@ -1001,14 +997,13 @@ class _DemosSection extends ConsumerWidget {
                     },
                     onSelected: (t) => setState(() => selectedTutor = t),
                     fieldViewBuilder:
-                        (context, controller, focusNode, onSubmit) =>
-                            TextField(
-                              controller: controller,
-                              focusNode: focusNode,
-                              decoration: const InputDecoration(
-                                labelText: 'المدرس (اكتب للبحث)',
-                              ),
-                            ),
+                        (context, controller, focusNode, onSubmit) => TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: const InputDecoration(
+                            labelText: 'المدرس (اكتب للبحث)',
+                          ),
+                        ),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
@@ -1194,10 +1189,7 @@ class _DemoRow extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(left: 6),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -2252,6 +2244,10 @@ class _EnrollmentsSheet extends ConsumerWidget {
                   );
                   return;
                 }
+                if (double.tryParse(amountController.text) == null) {
+                  setState(() => formError = 'لازم تكتب مبلغ صحيح');
+                  return;
+                }
                 Navigator.pop(context, true);
               },
               child: const Text('إضافة'),
@@ -2262,33 +2258,41 @@ class _EnrollmentsSheet extends ConsumerWidget {
     );
 
     if (saved != true) return;
-    String studentId;
-    if (selectedStudent != null) {
-      studentId = selectedStudent!.id;
-    } else {
-      final newStudent = await ref
-          .read(studentsRepositoryProvider)
-          .addStudent(
-            name: newStudentNameController.text.trim(),
-            phoneWhatsapp: newStudentPhone,
+    try {
+      String studentId;
+      if (selectedStudent != null) {
+        studentId = selectedStudent!.id;
+      } else {
+        final newStudent = await ref
+            .read(studentsRepositoryProvider)
+            .addStudent(
+              name: newStudentNameController.text.trim(),
+              phoneWhatsapp: newStudentPhone,
+              acquisitionSource: enrollmentSource,
+              marketerName: enrollmentMarketer,
+              commissionPct: enrollmentCommissionPct,
+            );
+        studentId = newStudent.id;
+      }
+      await ref
+          .read(coursesRepositoryProvider)
+          .addEnrollment(
+            courseTermId: courseTerm.id,
+            studentId: studentId,
+            amount: double.tryParse(amountController.text) ?? 0,
+            currency: currency,
+            paymentMethod: paymentMethod,
             acquisitionSource: enrollmentSource,
             marketerName: enrollmentMarketer,
             commissionPct: enrollmentCommissionPct,
           );
-      studentId = newStudent.id;
-    }
-    await ref
-        .read(coursesRepositoryProvider)
-        .addEnrollment(
-          courseTermId: courseTerm.id,
-          studentId: studentId,
-          amount: double.tryParse(amountController.text) ?? 0,
-          currency: currency,
-          paymentMethod: paymentMethod,
-          acquisitionSource: enrollmentSource,
-          marketerName: enrollmentMarketer,
-          commissionPct: enrollmentCommissionPct,
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حصل خطأ أثناء إضافة الطالب: $e')),
         );
+      }
+    }
   }
 
   @override

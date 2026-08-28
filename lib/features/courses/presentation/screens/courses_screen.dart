@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
+import '../../../tutors/domain/entities/tutor.dart';
 import '../../../tutors/presentation/providers/tutors_providers.dart';
 import '../../../universities/domain/entities/term.dart';
 import '../../../universities/domain/entities/university.dart';
@@ -310,30 +311,38 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    initialValue: _tutorFilter,
-                    isDense: true,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'المدرس',
-                      isDense: true,
+                  child: Autocomplete<Tutor>(
+                    displayStringForOption: (t) => t.name,
+                    initialValue: TextEditingValue(
+                      text:
+                          tutors
+                              .where((t) => t.id == _tutorFilter)
+                              .firstOrNull
+                              ?.name ??
+                          '',
                     ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text(
-                          'كل المدرسين',
-                          overflow: TextOverflow.ellipsis,
+                    optionsBuilder: (value) {
+                      if (value.text.isEmpty) return tutors;
+                      final q = value.text.toLowerCase();
+                      return tutors.where(
+                        (t) => t.name.toLowerCase().contains(q),
+                      );
+                    },
+                    onSelected: (t) => setState(() => _tutorFilter = t.id),
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onSubmit) => TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          onChanged: (v) {
+                            if (v.isEmpty && _tutorFilter != null) {
+                              setState(() => _tutorFilter = null);
+                            }
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'المدرس (بحث)',
+                            isDense: true,
+                          ),
                         ),
-                      ),
-                      ...tutors.map(
-                        (t) => DropdownMenuItem(
-                          value: t.id,
-                          child: Text(t.name, overflow: TextOverflow.ellipsis),
-                        ),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _tutorFilter = v),
                   ),
                 ),
               ],
@@ -488,10 +497,7 @@ class _CourseTile extends StatelessWidget {
               subtitleParts.isEmpty
                   ? 'بدون جامعة أو مدرس بعد'
                   : subtitleParts.join(' • '),
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textMuted,
-              ),
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
             if (missingDemo)
               const Text(

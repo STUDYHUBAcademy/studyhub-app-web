@@ -680,108 +680,115 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
     );
 
     if (saved != true) return;
+    try {
+      String tutorId;
+      if (tutorPick!.selected != null) {
+        tutorId = tutorPick!.selected!.id;
+      } else {
+        final newTutor = await ref
+            .read(tutorsRepositoryProvider)
+            .addTutorQuick(tutorPick!.name);
+        tutorId = newTutor.id;
+      }
 
-    String tutorId;
-    if (tutorPick!.selected != null) {
-      tutorId = tutorPick!.selected!.id;
-    } else {
-      final newTutor = await ref
-          .read(tutorsRepositoryProvider)
-          .addTutorQuick(tutorPick!.name);
-      tutorId = newTutor.id;
-    }
+      String studentId;
+      if (studentPick!.selected != null) {
+        studentId = studentPick!.selected!.id;
+      } else {
+        final newStudent = await ref
+            .read(studentsRepositoryProvider)
+            .addStudent(
+              name: studentPick!.name,
+              phoneWhatsapp: studentPick!.phone,
+              acquisitionSource: sessionSource,
+              marketerName: sessionMarketer,
+              commissionPct: sessionCommissionPct,
+            );
+        studentId = newStudent.id;
+      }
 
-    String studentId;
-    if (studentPick!.selected != null) {
-      studentId = studentPick!.selected!.id;
-    } else {
-      final newStudent = await ref
-          .read(studentsRepositoryProvider)
-          .addStudent(
-            name: studentPick!.name,
-            phoneWhatsapp: studentPick!.phone,
-            acquisitionSource: sessionSource,
-            marketerName: sessionMarketer,
-            commissionPct: sessionCommissionPct,
-          );
-      studentId = newStudent.id;
-    }
+      final durationMinutes =
+          (int.tryParse(hoursController.text.trim()) ?? 0) * 60 +
+          (int.tryParse(minutesController.text.trim()) ?? 0);
 
-    final durationMinutes =
-        (int.tryParse(hoursController.text.trim()) ?? 0) * 60 +
-        (int.tryParse(minutesController.text.trim()) ?? 0);
-
-    if (existing == null) {
-      await ref
-          .read(sessionsRepositoryProvider)
-          .addSession(
-            tutorId: tutorId,
-            studentId: studentId,
-            subject: subjectController.text.trim().isEmpty
-                ? 'حصة خصوصي'
-                : subjectController.text.trim(),
-            scheduledAt: scheduledAt,
-            durationMinutes: durationMinutes == 0 ? 60 : durationMinutes,
-            studentHourlyRate: double.tryParse(
-              studentHourlyRateController.text.trim(),
-            ),
-            studentTotal: double.tryParse(studentTotalController.text.trim()),
-            studentTotalCurrency: studentCurrency,
-            studentAmountReceived: double.tryParse(
-              studentReceivedController.text.trim(),
-            ),
-            paymentMethod: paymentMethod,
-            tutorHourlyRate: double.tryParse(
-              tutorHourlyRateController.text.trim(),
-            ),
-            tutorPayout: double.tryParse(tutorPayoutController.text.trim()),
-            tutorPayoutCurrency: tutorCurrency,
-            materialNote: notesController.text.trim().isEmpty
-                ? null
-                : notesController.text.trim(),
-            writeOffAmount:
-                double.tryParse(writeOffController.text.trim()) ?? 0,
-            writeOffReason: writeOffReason,
-            acquisitionSource: sessionSource,
-            marketerName: sessionMarketer,
-            commissionPct: sessionCommissionPct,
-          );
-    } else {
-      await ref
-          .read(sessionsRepositoryProvider)
-          .updateSession(
-            id: existing.id,
-            tutorId: tutorId,
-            studentId: studentId,
-            subject: subjectController.text.trim().isEmpty
-                ? 'حصة خصوصي'
-                : subjectController.text.trim(),
-            scheduledAt: scheduledAt,
-            durationMinutes: durationMinutes == 0 ? 60 : durationMinutes,
-            studentHourlyRate: double.tryParse(
-              studentHourlyRateController.text.trim(),
-            ),
-            studentTotal: double.tryParse(studentTotalController.text.trim()),
-            studentTotalCurrency: studentCurrency,
-            studentAmountReceived: double.tryParse(
-              studentReceivedController.text.trim(),
-            ),
-            paymentMethod: paymentMethod,
-            tutorHourlyRate: double.tryParse(
-              tutorHourlyRateController.text.trim(),
-            ),
-            tutorPayout: double.tryParse(tutorPayoutController.text.trim()),
-            tutorPayoutCurrency: tutorCurrency,
-            materialNote: notesController.text.trim().isEmpty
-                ? null
-                : notesController.text.trim(),
-            writeOffAmount:
-                double.tryParse(writeOffController.text.trim()) ?? 0,
-            writeOffReason: writeOffReason,
-            acquisitionSource: sessionSource,
-            marketerName: sessionMarketer,
-            commissionPct: sessionCommissionPct,
-          );
+      if (existing == null) {
+        await ref
+            .read(sessionsRepositoryProvider)
+            .addSession(
+              tutorId: tutorId,
+              studentId: studentId,
+              subject: subjectController.text.trim().isEmpty
+                  ? 'حصة خصوصي'
+                  : subjectController.text.trim(),
+              scheduledAt: scheduledAt,
+              durationMinutes: durationMinutes == 0 ? 60 : durationMinutes,
+              studentHourlyRate: double.tryParse(
+                studentHourlyRateController.text.trim(),
+              ),
+              studentTotal: double.tryParse(studentTotalController.text.trim()),
+              studentTotalCurrency: studentCurrency,
+              studentAmountReceived: double.tryParse(
+                studentReceivedController.text.trim(),
+              ),
+              paymentMethod: paymentMethod,
+              tutorHourlyRate: double.tryParse(
+                tutorHourlyRateController.text.trim(),
+              ),
+              tutorPayout: double.tryParse(tutorPayoutController.text.trim()),
+              tutorPayoutCurrency: tutorCurrency,
+              materialNote: notesController.text.trim().isEmpty
+                  ? null
+                  : notesController.text.trim(),
+              writeOffAmount:
+                  double.tryParse(writeOffController.text.trim()) ?? 0,
+              writeOffReason: writeOffReason,
+              acquisitionSource: sessionSource,
+              marketerName: sessionMarketer,
+              commissionPct: sessionCommissionPct,
+            );
+      } else {
+        await ref
+            .read(sessionsRepositoryProvider)
+            .updateSession(
+              id: existing.id,
+              tutorId: tutorId,
+              studentId: studentId,
+              subject: subjectController.text.trim().isEmpty
+                  ? 'حصة خصوصي'
+                  : subjectController.text.trim(),
+              scheduledAt: scheduledAt,
+              durationMinutes: durationMinutes == 0 ? 60 : durationMinutes,
+              studentHourlyRate: double.tryParse(
+                studentHourlyRateController.text.trim(),
+              ),
+              studentTotal: double.tryParse(studentTotalController.text.trim()),
+              studentTotalCurrency: studentCurrency,
+              studentAmountReceived: double.tryParse(
+                studentReceivedController.text.trim(),
+              ),
+              paymentMethod: paymentMethod,
+              tutorHourlyRate: double.tryParse(
+                tutorHourlyRateController.text.trim(),
+              ),
+              tutorPayout: double.tryParse(tutorPayoutController.text.trim()),
+              tutorPayoutCurrency: tutorCurrency,
+              materialNote: notesController.text.trim().isEmpty
+                  ? null
+                  : notesController.text.trim(),
+              writeOffAmount:
+                  double.tryParse(writeOffController.text.trim()) ?? 0,
+              writeOffReason: writeOffReason,
+              acquisitionSource: sessionSource,
+              marketerName: sessionMarketer,
+              commissionPct: sessionCommissionPct,
+            );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('حصل خطأ أثناء حفظ الحصة: $e')));
+      }
     }
   }
 

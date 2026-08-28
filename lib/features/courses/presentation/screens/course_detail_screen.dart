@@ -2646,6 +2646,7 @@ Future<void> _recordEnrollmentPayment(
   var paymentMethod = enrollment.paymentMethod;
   final notesController = TextEditingController();
   final writeOffController = TextEditingController();
+  final netPreviewController = TextEditingController();
   String? writeOffReason;
   String? formError;
   final tabbyTamaraFeePct =
@@ -2722,7 +2723,10 @@ Future<void> _recordEnrollmentPayment(
                     controller: amountController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'المبلغ المستلم (${enrollment.currency})',
+                      labelText:
+                          'المبلغ الإجمالي المدفوع (${enrollment.currency})',
+                      helperText:
+                          'السعر الكامل قبل خصم رسوم البوابة/عمولة المسوق',
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -2807,14 +2811,29 @@ Future<void> _recordEnrollmentPayment(
                         return const SizedBox.shrink();
                       }
                       final net = gross - writeOff - marketerFee;
+                      // Auto-filled read-only: this is the number that
+                      // actually gets saved as the received payment, written
+                      // automatically as the owner types the gross amount —
+                      // not something they need to type or calculate by hand.
+                      netPreviewController.text = net.toStringAsFixed(0);
                       return Padding(
                         padding: const EdgeInsets.only(top: 10),
-                        child: Text(
-                          'الصافي بعد كل الخصومات: ${net.toStringAsFixed(0)} ${enrollment.currency}'
-                          '${writeOff > 0 ? ' (رسوم/خصم ${writeOff.toStringAsFixed(0)})' : ''}'
-                          '${marketerFee > 0 ? ' (عمولة مسوق ${marketerFee.toStringAsFixed(0)})' : ''}',
+                        child: TextField(
+                          controller: netPreviewController,
+                          enabled: false,
+                          decoration: InputDecoration(
+                            labelText:
+                                'المبلغ المستلم فعليًا (تلقائي، ${enrollment.currency})',
+                            helperText:
+                                '${writeOff > 0 ? 'بعد رسوم/خصم ${writeOff.toStringAsFixed(0)}' : ''}'
+                                '${writeOff > 0 && marketerFee > 0 ? ' و' : ''}'
+                                '${marketerFee > 0 ? 'عمولة مسوق ${marketerFee.toStringAsFixed(0)}' : ''}',
+                            labelStyle: const TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                           style: const TextStyle(
-                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: AppColors.accent,
                           ),

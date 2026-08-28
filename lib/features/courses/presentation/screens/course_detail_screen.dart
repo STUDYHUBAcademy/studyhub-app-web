@@ -737,17 +737,17 @@ class _CourseSummaryCard extends ConsumerWidget {
     final allEnrollments = termEnrollments.values.expand((e) => e).toList();
     final studentsCount = allEnrollments.map((e) => e.studentId).toSet().length;
 
-    // A cancelled enrollment only counts what was actually paid before the
-    // cancellation — not the full amount they were originally contracted for.
-    // Any write-off (discount / gateway fee) always reduces what's owed.
+    // A cancelled enrollment counts for nothing — any money already
+    // collected on it is treated as refunded once the enrollment is
+    // cancelled, so it drops out of revenue/tutor cost entirely.
     final paidByEnrollment = <String, double>{
       for (final e in allEnrollments)
         e.id: (ref.watch(enrollmentPaymentsProvider(e.id)).valueOrNull ?? [])
             .fold<double>(0, (sum, p) => sum + p.amount),
     };
     double contractedAmount(Enrollment e) {
-      if (e.status != 'cancelled') return e.effectiveAmount;
-      return paidByEnrollment[e.id] ?? 0;
+      if (e.status == 'cancelled') return 0;
+      return e.effectiveAmount;
     }
 
     // Cash actually collected — revenue and revshare cost both key off this,
@@ -1278,13 +1278,6 @@ class _DemoRow extends ConsumerWidget {
 const _termPricingLabels = {
   'flat': 'مبلغ مقطوع',
   'revshare': 'نسبة من الإيراد',
-};
-const _termStatusOptions = {
-  'planning': 'تخطيط',
-  'marketing': 'تسويق',
-  'active': 'نشط',
-  'completed': 'مكتمل',
-  'cancelled': 'ملغي',
 };
 
 class _CourseTermsSection extends ConsumerWidget {
@@ -1825,31 +1818,10 @@ class _CourseTermCard extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: courseTerm.status,
-                  isDense: true,
-                  decoration: const InputDecoration(isDense: true),
-                  items: _termStatusOptions.entries
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      ref
-                          .read(coursesRepositoryProvider)
-                          .updateCourseTermStatus(courseTerm.id, v);
-                    }
-                  },
+                child: OutlinedButton(
+                  onPressed: () => _showEnrollments(context, ref, courseTerm),
+                  child: const Text('الطلاب'),
                 ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: () => _showEnrollments(context, ref, courseTerm),
-                child: const Text('الطلاب'),
               ),
               IconButton(
                 icon: const Icon(
@@ -2543,7 +2515,7 @@ class _EnrollmentsSheet extends ConsumerWidget {
                                       : 'إلغاء اشتراك $studentName',
                                   message: cancelled
                                       ? 'هيتم اعتبار $studentName مشترك تاني في الكورس. اكتب كلمة المرور للتأكيد.'
-                                      : 'هيتم اعتبار $studentName منسحب من الكورس — المبلغ المتبقي مش هيتحسب ضمن الإيرادات. اكتب كلمة المرور للتأكيد.',
+                                      : 'هيتم اعتبار $studentName منسحب من الكورس، وأي مبلغ اتحصل منه هيتشال خالص من الإيرادات وصافي الربح (زي لو استرجعله). اكتب كلمة المرور للتأكيد.',
                                 );
                                 if (!confirmed) return;
                                 await ref

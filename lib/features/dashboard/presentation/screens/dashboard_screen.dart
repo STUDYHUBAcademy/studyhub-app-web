@@ -104,12 +104,12 @@ class DashboardScreen extends ConsumerWidget {
       return [subject, termName].whereType<String>().join(' — ');
     }
 
-    // A cancelled enrollment only counts what was actually paid before the
-    // cancellation — not the full amount they were originally contracted for.
-    // Any write-off (discount / gateway fee) always reduces what's owed.
+    // A cancelled enrollment counts for nothing — any money already
+    // collected on it is treated as refunded once the enrollment is
+    // cancelled, so it drops out of revenue/commission/tutor cost entirely.
     double effectiveEnrollmentAmount(Enrollment e) {
-      if (e.status != 'cancelled') return e.effectiveAmount;
-      return paidByEnrollment[e.id] ?? 0;
+      if (e.status == 'cancelled') return 0;
+      return e.effectiveAmount;
     }
 
     // Cash actually in hand for this enrollment — never more than what's

@@ -654,10 +654,10 @@ do $$
 declare
   t text;
   realtime_tables text[] := array[
-    'tutor_applications','tutors','universities','terms',
+    'profiles','tutor_applications','tutors','universities','terms',
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
     'tutor_ledger','private_sessions','transactions','tasks','academy_expenses','owner_withdrawals',
-    'chat_channels','chat_messages'
+    'chat_channels','chat_messages','marketers','app_settings','activity_log'
   ];
 begin
   foreach t in array realtime_tables loop

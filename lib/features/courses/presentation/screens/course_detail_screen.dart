@@ -1245,7 +1245,15 @@ class _DemoRow extends ConsumerWidget {
                     'هيتم حذف "$tutorName" نهائيًا من الديمو بتاع الكورس ده. اكتب كلمة المرور للتأكيد.',
               );
               if (!confirmed) return;
-              await ref.read(coursesRepositoryProvider).deleteDemo(demo);
+              try {
+                await ref.read(coursesRepositoryProvider).deleteDemo(demo);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('حصل خطأ أثناء الحذف: $e')),
+                  );
+                }
+              }
             },
           ),
         ],
@@ -1845,9 +1853,19 @@ class _CourseTermCard extends ConsumerWidget {
                         'هيتم حذف "$termName" وكل الطلاب المسجلين فيه نهائيًا. اكتب كلمة المرور للتأكيد.',
                   );
                   if (!confirmed) return;
-                  await ref
-                      .read(coursesRepositoryProvider)
-                      .deleteCourseTerm(courseTerm.id);
+                  try {
+                    await ref
+                        .read(coursesRepositoryProvider)
+                        .deleteCourseTerm(courseTerm.id);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('حصل خطأ أثناء حذف الفصل الدراسي: $e'),
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ],

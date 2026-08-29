@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -7,7 +9,13 @@ import '../theme/app_colors.dart';
 /// backgrounded long enough for the access token to expire before its
 /// usual proactive refresh could fire, so every subscription fails with
 /// "Token has expired" until something re-subscribes with a fresh token.
-class RealtimeErrorView extends StatelessWidget {
+///
+/// Connection-flavored errors are usually transient (the underlying socket
+/// reconnects within a couple of seconds on its own), so this retries
+/// automatically with backoff instead of leaving the owner staring at an
+/// error until they think to tap the button themselves. The manual button
+/// stays available for a retry that isn't self-healing.
+class RealtimeErrorView extends StatefulWidget {
   const RealtimeErrorView({
     super.key,
     required this.error,
@@ -18,12 +26,56 @@ class RealtimeErrorView extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
-    final message = error.toString();
-    final isConnectionIssue =
-        message.contains('channelError') ||
+  State<RealtimeErrorView> createState() => _RealtimeErrorViewState();
+}
+
+class _RealtimeErrorViewState extends State<RealtimeErrorView> {
+  Timer? _autoRetryTimer;
+  int _attempt = 0;
+
+  bool get _isConnectionIssue {
+    final message = widget.error.toString();
+    return message.contains('channelError') ||
         message.contains('Token has expired') ||
         message.contains('RealtimeSubscribeException');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleAutoRetryIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(RealtimeErrorView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A fresh error instance means the retry above didn't fix it — back off
+    // a bit further before trying again, capped so it doesn't hammer.
+    if (oldWidget.error != widget.error) {
+      _scheduleAutoRetryIfNeeded();
+    }
+  }
+
+  void _scheduleAutoRetryIfNeeded() {
+    _autoRetryTimer?.cancel();
+    if (!_isConnectionIssue || _attempt >= 4) return;
+    _attempt++;
+    final delay = Duration(seconds: _attempt * 2);
+    _autoRetryTimer = Timer(delay, () {
+      if (mounted) widget.onRetry();
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoRetryTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final message = widget.error.toString();
+    final isConnectionIssue = _isConnectionIssue;
 
     return Center(
       child: Padding(
@@ -46,7 +98,7 @@ class RealtimeErrorView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: onRetry,
+              onPressed: widget.onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('إعادة المحاولة'),
             ),

@@ -5,7 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/network/supabase_client.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/activity_log/presentation/providers/activity_log_providers.dart';
+import 'features/courses/presentation/providers/courses_providers.dart';
+import 'features/finance/presentation/providers/finance_providers.dart';
+import 'features/marketers/presentation/providers/marketers_providers.dart';
 import 'features/sessions/presentation/providers/sessions_providers.dart';
+import 'features/settings/presentation/providers/app_settings_providers.dart';
+import 'features/students/presentation/providers/students_providers.dart';
+import 'features/tasks/presentation/providers/tasks_providers.dart';
+import 'features/tutors/presentation/providers/tutors_providers.dart';
+import 'features/universities/presentation/providers/universities_providers.dart';
 
 class StudyHubApp extends ConsumerStatefulWidget {
   const StudyHubApp({super.key});
@@ -30,12 +39,6 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Android pauses Dart timers while the app is backgrounded, so the
-    // access token's usual proactive refresh (~1h before expiry) can miss
-    // its window during a long stay in the background. Left alone, every
-    // realtime subscription then fails with "Token has expired" as soon as
-    // the app resumes, and every screen shows that raw error instead of its
-    // data — so force a refresh right when the app comes back to front.
     if (state == AppLifecycleState.resumed) {
       _recoverSession();
     }
@@ -45,31 +48,25 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
     try {
       if (AppSupabase.client.auth.currentSession == null) return;
       await AppSupabase.client.auth.refreshSession();
-    } catch (_) {
-      // No valid refresh token left — the router's auth redirect will send
-      // the owner back to /login on its own; nothing more to do here.
-    }
-    // A tab/app backgrounded for a while (switching to another app to grab
-    // a link, leaving the browser tab in the background, etc.) can leave the
-    // realtime socket a zombie: the heartbeat that's supposed to notice a
-    // dead connection runs on a Dart Timer, which browsers/the OS throttle
-    // or pause while backgrounded, so it may never fire the miss that would
-    // trigger a reconnect. Every screen built on a `.stream()` then just
-    // hangs with no error and no data. Force a clean reconnect the moment
-    // we know we're back in the foreground instead of waiting for the
-    // heartbeat to eventually catch up.
-    try {
-      await AppSupabase.client.realtime.disconnect();
-      // The socket-level connect() call is package-internal, so force a
-      // fresh connection the supported way: subscribing any channel makes
-      // the client (re)open the shared socket, and every other channel that
-      // was already joined rejoins automatically once it's back up.
-      final pingChannel = AppSupabase.client.channel('resume-ping');
-      pingChannel.subscribe();
-      Future.delayed(const Duration(seconds: 3), () {
-        AppSupabase.client.removeChannel(pingChannel);
-      });
     } catch (_) {}
+
+    if (mounted) {
+      ref.invalidate(coursesProvider);
+      ref.invalidate(allEnrollmentsProvider);
+      ref.invalidate(studentsProvider);
+      ref.invalidate(tutorsProvider);
+      ref.invalidate(applicationsProvider);
+      ref.invalidate(sessionsProvider);
+      ref.invalidate(expensesProvider);
+      ref.invalidate(withdrawalsProvider);
+      ref.invalidate(ownerProfilesProvider);
+      ref.invalidate(tasksProvider);
+      ref.invalidate(marketersProvider);
+      ref.invalidate(universitiesProvider);
+      ref.invalidate(termsProvider);
+      ref.invalidate(activityLogProvider);
+      ref.invalidate(appSettingsProvider);
+    }
   }
 
   @override

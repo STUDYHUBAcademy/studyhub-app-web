@@ -2254,6 +2254,13 @@ class _PaymentHistorySheet extends ConsumerWidget {
     Tutor tutor,
     List<TutorPayment> payments,
   ) {
+    if (payments.isEmpty) {
+      launchWhatsapp(
+        tutor.phoneWhatsapp!,
+        text: 'يا ${tutor.name}، لسه مفيش دفعات مسجلة ليك على الكورس ده 🙏',
+      );
+      return;
+    }
     final buffer = StringBuffer('سجل دفعاتك يا ${tutor.name} 👋\n\n');
     for (final p in payments) {
       buffer.writeln(
@@ -2263,9 +2270,7 @@ class _PaymentHistorySheet extends ConsumerWidget {
       );
     }
     final total = payments.fold<double>(0, (sum, p) => sum + p.amount);
-    buffer.write(
-      '\nالإجمالي: ${_fmtMoney(total)} ${payments.isNotEmpty ? payments.first.currency : ''}',
-    );
+    buffer.write('\nالإجمالي: ${_fmtMoney(total)} ${payments.first.currency}');
     launchWhatsapp(tutor.phoneWhatsapp!, text: buffer.toString());
   }
 
@@ -2297,7 +2302,7 @@ class _PaymentHistorySheet extends ConsumerWidget {
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                 ),
-                if (tutor?.phoneWhatsapp != null && payments.isNotEmpty)
+                if (tutor?.phoneWhatsapp != null)
                   TextButton.icon(
                     onPressed: () => _shareWithTutor(ref, tutor!, payments),
                     icon: const Icon(Icons.share_outlined, size: 16),

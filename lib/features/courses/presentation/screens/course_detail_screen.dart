@@ -910,7 +910,10 @@ class _CourseSummaryCard extends ConsumerWidget {
                         ),
                         visualDensity: VisualDensity.compact,
                         tooltip: 'راسل المدرس على واتساب',
-                        onPressed: () => launchWhatsapp(tutor!.phoneWhatsapp!),
+                        onPressed: () => launchWhatsapp(
+                          tutor!.phoneWhatsapp!,
+                          text: greetingMessageFor(tutor.name),
+                        ),
                       ),
                   ],
                 );

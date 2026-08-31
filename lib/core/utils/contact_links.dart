@@ -26,6 +26,15 @@ Future<void> launchWhatsapp(String phone, {String? text}) {
   );
 }
 
+/// Standard opener for a first/general WhatsApp message to a tutor — a
+/// polite greeting by first name, framed around their file with the
+/// academy rather than any specific topic.
+String greetingMessageFor(String fullName) {
+  final firstName = fullName.trim().split(RegExp(r'\s+')).first;
+  return 'أهلا بك أستاذ $firstName\n'
+      'بخصوص ملفك المسجل لدينا في منصة StudyHUB';
+}
+
 Future<void> launchEmail(String email) => launchUrl(Uri.parse('mailto:$email'));
 
 Future<void> launchWebLink(String url) => launchUrl(

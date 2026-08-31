@@ -184,7 +184,10 @@ class _TutorDetailBody extends ConsumerWidget {
                         color: AppColors.accent,
                       ),
                       title: const Text('واتساب'),
-                      onTap: () => launchWhatsapp(tutor.phoneWhatsapp!),
+                      onTap: () => launchWhatsapp(
+                        tutor.phoneWhatsapp!,
+                        text: greetingMessageFor(tutor.name),
+                      ),
                     ),
                   if (tutor.email != null && tutor.email!.isNotEmpty)
                     ListTile(

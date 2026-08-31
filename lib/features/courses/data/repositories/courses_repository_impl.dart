@@ -72,8 +72,17 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<void> updateCourseStatus(String courseId, String status) {
-    return _remote.updateCourse(courseId, {'status': status});
+  Future<void> updateCourseStatus(String courseId, String status) async {
+    await _remote.updateCourse(courseId, {'status': status});
+    await _syncTutorForCourse(courseId);
+  }
+
+  /// Re-derives the assigned tutor's active/inactive status after anything
+  /// that could have changed whether this course counts as 'active'.
+  Future<void> _syncTutorForCourse(String courseId) async {
+    final course = await _remote.fetchCourse(courseId);
+    final tutorId = course['tutor_id'] as String?;
+    if (tutorId != null) await _remote.syncTutorActiveStatus(tutorId);
   }
 
   @override
@@ -111,7 +120,12 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<void> deleteCourse(String courseId) => _remote.deleteCourse(courseId);
+  Future<void> deleteCourse(String courseId) async {
+    final course = await _remote.fetchCourse(courseId);
+    final tutorId = course['tutor_id'] as String?;
+    await _remote.deleteCourse(courseId);
+    if (tutorId != null) await _remote.syncTutorActiveStatus(tutorId);
+  }
 
   @override
   Future<void> addDemo({
@@ -137,6 +151,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
         'status': 'active',
       });
       await _remote.rejectOtherDemos(demo.courseId, demo.id);
+      await _remote.syncTutorActiveStatus(demo.tutorId);
     }
   }
 
@@ -148,6 +163,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
         'tutor_id': null,
         'status': 'planning',
       });
+      await _remote.syncTutorActiveStatus(demo.tutorId);
     }
   }
 
@@ -180,11 +196,32 @@ class CoursesRepositoryImpl implements CoursesRepository {
     });
     // Adding a term (e.g. reopening a course for a new academic term) means the course is in use again.
     await _remote.updateCourse(courseId, {'status': 'active'});
+    await _syncTutorForCourse(courseId);
   }
 
   @override
   Future<void> updateCourseTermStatus(String id, String status) {
     return _remote.updateCourseTerm(id, {'status': status});
+  }
+
+  @override
+  Future<void> updateCourseTermPricing({
+    required String id,
+    required String pricingModel,
+    double? tutorFlatFee,
+    required String tutorFlatFeeCurrency,
+    required double revsharePct,
+    double? studentPrice,
+    required String studentPriceCurrency,
+  }) {
+    return _remote.updateCourseTerm(id, {
+      'pricing_model': pricingModel,
+      'tutor_flat_fee': pricingModel == 'flat' ? tutorFlatFee : null,
+      'tutor_flat_fee_currency': tutorFlatFeeCurrency,
+      'revshare_pct': revsharePct,
+      'student_price': studentPrice,
+      'student_price_currency': studentPriceCurrency,
+    });
   }
 
   @override

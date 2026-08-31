@@ -102,6 +102,19 @@ abstract class CoursesRepository {
 
   Future<void> updateCourseTermStatus(String id, String status);
 
+  /// Edits a term's pricing after it's already been created — e.g. the
+  /// tutor's rate was set provisionally and needs correcting once the real
+  /// deal is settled.
+  Future<void> updateCourseTermPricing({
+    required String id,
+    required String pricingModel,
+    double? tutorFlatFee,
+    required String tutorFlatFeeCurrency,
+    required double revsharePct,
+    double? studentPrice,
+    required String studentPriceCurrency,
+  });
+
   /// Permanently removes a term — cascades to its enrollments/students, so
   /// callers should confirm with the owner before calling this.
   Future<void> deleteCourseTerm(String id);

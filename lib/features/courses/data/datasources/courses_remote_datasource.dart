@@ -62,8 +62,29 @@ class CoursesRemoteDatasource {
     await _client.from('courses').update(patch).eq('id', id);
   }
 
+  Future<Map<String, dynamic>> fetchCourse(String id) async {
+    return _client.from('courses').select().eq('id', id).single();
+  }
+
   Future<void> deleteCourse(String id) async {
     await _client.from('courses').delete().eq('id', id);
+  }
+
+  /// A tutor is 'active' exactly when they're assigned to at least one
+  /// active course, 'inactive' otherwise — keeps the roster status a
+  /// derived fact instead of something the owner has to remember to flip
+  /// by hand every time a course opens or closes.
+  Future<void> syncTutorActiveStatus(String tutorId) async {
+    final activeCourses = await _client
+        .from('courses')
+        .select('id')
+        .eq('tutor_id', tutorId)
+        .eq('status', 'active')
+        .limit(1);
+    await _client
+        .from('tutors')
+        .update({'status': activeCourses.isEmpty ? 'inactive' : 'active'})
+        .eq('id', tutorId);
   }
 
   Future<void> addDemo(Map<String, dynamic> demo) async {

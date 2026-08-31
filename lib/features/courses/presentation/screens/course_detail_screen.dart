@@ -1689,6 +1689,150 @@ class _CourseTermCard extends ConsumerWidget {
         );
   }
 
+  Future<void> _editPricing(BuildContext context, WidgetRef ref) async {
+    var isRevshare = courseTerm.pricingModel == 'revshare';
+    final flatFeeController = TextEditingController(
+      text: courseTerm.tutorFlatFee?.toStringAsFixed(0) ?? '',
+    );
+    final revsharePctController = TextEditingController(
+      text: courseTerm.revsharePct.toStringAsFixed(0),
+    );
+    final studentPriceController = TextEditingController(
+      text: courseTerm.studentPrice?.toStringAsFixed(0) ?? '',
+    );
+    var tutorCurrency = courseTerm.tutorFlatFeeCurrency;
+    var studentCurrency = courseTerm.studentPriceCurrency;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          title: const Text('تعديل تسعير الفصل الدراسي'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: isRevshare,
+                    onChanged: (v) => setState(() => isRevshare = v ?? false),
+                    title: const Text(
+                      'الكورس اتفتح قبل كده؟',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    subtitle: Text(
+                      isRevshare
+                          ? 'المدرس ياخد نسبة من كل اشتراك'
+                          : 'المدرس ياخد مبلغ ثابت',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (!isRevshare)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: flatFeeController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'مبلغ المدرس',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        DropdownButton<String>(
+                          value: tutorCurrency,
+                          items: const ['EGP', 'SAR', 'USD']
+                              .map(
+                                (c) =>
+                                    DropdownMenuItem(value: c, child: Text(c)),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => tutorCurrency = v ?? 'EGP'),
+                        ),
+                      ],
+                    )
+                  else
+                    TextField(
+                      controller: revsharePctController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'نسبة المدرس %',
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: studentPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'سعر الطالب',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      DropdownButton<String>(
+                        value: studentCurrency,
+                        items: const ['SAR', 'EGP', 'USD', 'AED']
+                            .map(
+                              (c) => DropdownMenuItem(value: c, child: Text(c)),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => studentCurrency = v ?? 'SAR'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+    await ref
+        .read(coursesRepositoryProvider)
+        .updateCourseTermPricing(
+          id: courseTerm.id,
+          pricingModel: isRevshare ? 'revshare' : 'flat',
+          tutorFlatFee: double.tryParse(flatFeeController.text.trim()),
+          tutorFlatFeeCurrency: tutorCurrency,
+          revsharePct: double.tryParse(revsharePctController.text.trim()) ?? 10,
+          studentPrice: double.tryParse(studentPriceController.text.trim()),
+          studentPriceCurrency: studentCurrency,
+        );
+  }
+
   void _showPaymentHistory(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
@@ -1767,6 +1911,15 @@ class _CourseTermCard extends ConsumerWidget {
                     color: AppColors.accent,
                   ),
                 ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: AppColors.textMuted,
+                ),
+                tooltip: 'تعديل التسعير',
+                onPressed: () => _editPricing(context, ref),
               ),
             ],
           ),

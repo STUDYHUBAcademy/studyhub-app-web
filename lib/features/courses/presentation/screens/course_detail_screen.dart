@@ -1672,6 +1672,7 @@ class _CourseTermsSection extends ConsumerWidget {
                         (ct) => _CourseTermCard(
                           courseTerm: ct,
                           termName: termNames[ct.termId] ?? '؟',
+                          subjectName: course.subjectName,
                           tutorId: course.tutorId,
                           courseArchived: course.status == 'archived',
                         ),
@@ -1691,12 +1692,14 @@ class _CourseTermCard extends ConsumerWidget {
   const _CourseTermCard({
     required this.courseTerm,
     required this.termName,
+    required this.subjectName,
     required this.tutorId,
     required this.courseArchived,
   });
 
   final CourseTerm courseTerm;
   final String termName;
+  final String subjectName;
   final String? tutorId;
   final bool courseArchived;
 
@@ -1934,8 +1937,11 @@ class _CourseTermCard extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) =>
-          _PaymentHistorySheet(courseTermId: courseTerm.id, tutorId: tutorId),
+      builder: (context) => _PaymentHistorySheet(
+        courseTermId: courseTerm.id,
+        subjectName: subjectName,
+        tutorId: tutorId,
+      ),
     );
   }
 
@@ -2136,10 +2142,12 @@ const _ledgerTypeLabels = {
 class _PaymentHistorySheet extends ConsumerWidget {
   const _PaymentHistorySheet({
     required this.courseTermId,
+    required this.subjectName,
     required this.tutorId,
   });
 
   final String courseTermId;
+  final String subjectName;
   final String? tutorId;
 
   Future<void> _editPayment(
@@ -2257,14 +2265,21 @@ class _PaymentHistorySheet extends ConsumerWidget {
     Tutor tutor,
     List<TutorPayment> payments,
   ) {
+    final intro = greetingMessageFor(
+      tutor.name,
+      aboutLine: 'بخصوص مادة $subjectName المسجلة مع أكاديمية StudyHub',
+    );
+
     if (payments.isEmpty) {
       launchWhatsapp(
         tutor.phoneWhatsapp!,
-        text: 'يا ${tutor.name}، لسه مفيش دفعات مسجلة ليك على الكورس ده 🙏',
+        text: '$intro\n\nلسه مفيش دفعات مسجلة ليك على المادة دي لحد دلوقتي.',
       );
       return;
     }
-    final buffer = StringBuffer('سجل دفعاتك يا ${tutor.name} 👋\n\n');
+    final buffer = StringBuffer(
+      '$intro\n\nيسرنا أن نقدم لكم كشف الدفعات الخاصة بالمادة:\n\n',
+    );
     for (final p in payments) {
       buffer.writeln(
         '• ${intl.DateFormat('d MMM yyyy', 'ar').format(p.date)} — '

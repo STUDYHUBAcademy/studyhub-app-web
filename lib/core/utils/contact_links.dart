@@ -26,13 +26,16 @@ Future<void> launchWhatsapp(String phone, {String? text}) {
   );
 }
 
-/// Standard opener for a first/general WhatsApp message to a tutor — a
-/// polite greeting by first name, framed around their file with the
-/// academy rather than any specific topic.
-String greetingMessageFor(String fullName) {
+/// Standard opening every WhatsApp message to a tutor starts with — an
+/// Islamic greeting, then their first name, then whatever line explains
+/// why we're messaging (defaults to the general "your file with us"
+/// framing when the caller doesn't have a more specific topic).
+String greetingMessageFor(String fullName, {String? aboutLine}) {
   final firstName = fullName.trim().split(RegExp(r'\s+')).first;
-  return 'أهلا بك أستاذ $firstName\n'
-      'بخصوص ملفك المسجل لدينا في منصة StudyHUB';
+  final about = aboutLine ?? 'بخصوص ملفك المسجل لدينا في منصة StudyHUB';
+  return 'السلام عليكم ورحمة الله وبركاته\n'
+      'اهلا بك استاذ $firstName\n'
+      '$about';
 }
 
 Future<void> launchEmail(String email) => launchUrl(Uri.parse('mailto:$email'));

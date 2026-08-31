@@ -141,6 +141,7 @@ create table if not exists courses (
 alter table courses add column if not exists materials_link text;
 alter table courses add column if not exists demo_link text;
 alter table courses add column if not exists group_link text;
+alter table courses add column if not exists notes text;
 alter table courses add column if not exists explanation_status text not null default 'not_started';
 alter table courses drop constraint if exists courses_explanation_status_check;
 alter table courses add constraint courses_explanation_status_check check (explanation_status in ('not_started','in_progress','completed'));

@@ -185,6 +185,37 @@ class _CourseDetailBody extends ConsumerWidget {
         .updateCourseGroupLink(course.id, link.isEmpty ? null : link);
   }
 
+  Future<void> _editNotes(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: course.notes ?? '');
+    final notes = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ملاحظات عن الكورس'),
+        content: TextField(
+          controller: controller,
+          maxLines: 5,
+          minLines: 3,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'اكتب ملاحظاتك هنا...'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+    if (notes == null) return;
+    await ref
+        .read(coursesRepositoryProvider)
+        .updateCourseNotes(course.id, notes.isEmpty ? null : notes);
+  }
+
   Future<void> _browseDrive(BuildContext context, WidgetRef ref) async {
     final link = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (context) => const DriveFolderPickerScreen()),
@@ -582,6 +613,36 @@ class _CourseDetailBody extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(
+                Icons.sticky_note_2_outlined,
+                color: AppColors.accent,
+              ),
+              title: Text(
+                course.notes == null || course.notes!.isEmpty
+                    ? 'إضافة ملاحظة عن الكورس'
+                    : 'ملاحظات',
+              ),
+              subtitle: course.notes != null && course.notes!.isNotEmpty
+                  ? Text(
+                      course.notes!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    )
+                  : null,
+              trailing: IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 20),
+                onPressed: () => _editNotes(context, ref),
+              ),
+              onTap: () => _editNotes(context, ref),
+            ),
+          ),
+          const SizedBox(height: 10),
           _DemosSection(course: course),
           const SizedBox(height: 10),
           _CourseTermsSection(course: course),
@@ -825,7 +886,36 @@ class _CourseSummaryCard extends ConsumerWidget {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             ),
             const SizedBox(height: 10),
-            _SummaryLine(label: 'المدرس', value: tutorName ?? '— لسه مفيش —'),
+            Builder(
+              builder: (context) {
+                final tutor = course.tutorId == null
+                    ? null
+                    : (ref.watch(tutorsProvider).valueOrNull ?? [])
+                          .where((t) => t.id == course.tutorId)
+                          .firstOrNull;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _SummaryLine(
+                        label: 'المدرس',
+                        value: tutorName ?? '— لسه مفيش —',
+                      ),
+                    ),
+                    if (tutor?.phoneWhatsapp != null)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.chat_outlined,
+                          size: 18,
+                          color: AppColors.success,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'راسل المدرس على واتساب',
+                        onPressed: () => launchWhatsapp(tutor!.phoneWhatsapp!),
+                      ),
+                  ],
+                );
+              },
+            ),
             _SummaryLine(label: 'عدد الطلاب المسجلين', value: '$studentsCount'),
             if (revenue.isNotEmpty)
               _SummaryMoneySection(
@@ -2159,6 +2249,26 @@ class _PaymentHistorySheet extends ConsumerWidget {
         );
   }
 
+  void _shareWithTutor(
+    WidgetRef ref,
+    Tutor tutor,
+    List<TutorPayment> payments,
+  ) {
+    final buffer = StringBuffer('سجل دفعاتك يا ${tutor.name} 👋\n\n');
+    for (final p in payments) {
+      buffer.writeln(
+        '• ${intl.DateFormat('d MMM yyyy', 'ar').format(p.date)} — '
+        '${_fmtMoney(p.amount)} ${p.currency}'
+        '${p.notes != null && p.notes!.isNotEmpty ? ' (${p.notes})' : ''}',
+      );
+    }
+    final total = payments.fold<double>(0, (sum, p) => sum + p.amount);
+    buffer.write(
+      '\nالإجمالي: ${_fmtMoney(total)} ${payments.isNotEmpty ? payments.first.currency : ''}',
+    );
+    launchWhatsapp(tutor.phoneWhatsapp!, text: buffer.toString());
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final payments = tutorId == null
@@ -2166,6 +2276,11 @@ class _PaymentHistorySheet extends ConsumerWidget {
         : (ref.watch(tutorLedgerProvider(tutorId!)).valueOrNull ?? [])
               .where((p) => p.courseTermId == courseTermId)
               .toList();
+    final tutor = tutorId == null
+        ? null
+        : (ref.watch(tutorsProvider).valueOrNull ?? [])
+              .where((t) => t.id == tutorId)
+              .firstOrNull;
 
     return SafeArea(
       child: Padding(
@@ -2174,9 +2289,24 @@ class _PaymentHistorySheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'سجل الدفعات للمدرس',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'سجل الدفعات للمدرس',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                  ),
+                ),
+                if (tutor?.phoneWhatsapp != null && payments.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () => _shareWithTutor(ref, tutor!, payments),
+                    icon: const Icon(Icons.share_outlined, size: 16),
+                    label: const Text(
+                      'شارك مع المدرس',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             if (payments.isEmpty)

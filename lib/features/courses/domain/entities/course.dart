@@ -8,6 +8,7 @@ class Course {
     this.materialsLink,
     this.demoLink,
     this.groupLink,
+    this.notes,
     required this.status,
     required this.explanationStatus,
     required this.createdAt,
@@ -21,6 +22,7 @@ class Course {
   final String? materialsLink;
   final String? demoLink;
   final String? groupLink;
+  final String? notes;
   final String status; // planning | active | inactive | archived
   final String explanationStatus; // not_started | in_progress | completed
   final DateTime createdAt;
@@ -35,6 +37,7 @@ class Course {
       materialsLink: json['materials_link'] as String?,
       demoLink: json['demo_link'] as String?,
       groupLink: json['group_link'] as String?,
+      notes: json['notes'] as String?,
       status: json['status'] as String? ?? 'planning',
       explanationStatus: json['explanation_status'] as String? ?? 'not_started',
       createdAt: DateTime.parse(json['created_at'] as String),

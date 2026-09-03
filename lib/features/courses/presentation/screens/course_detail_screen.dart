@@ -1708,6 +1708,22 @@ class _CourseQuizzesSection extends ConsumerWidget {
         .showSnackBar(const SnackBar(content: Text('اتنسخ اللينك')));
   }
 
+  void _shareWithStudents(BuildContext context, String quizId, String title) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _ShareQuizWithStudentsSheet(
+        course: course,
+        quizId: quizId,
+        quizTitle: title,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quizzesAsync = ref.watch(quizzesProvider);
@@ -1739,6 +1755,12 @@ class _CourseQuizzesSection extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
+                      icon: const Icon(Icons.groups_outlined, size: 18),
+                      tooltip: 'مشاركة مع الطلاب المسجلين',
+                      onPressed: () =>
+                          _shareWithStudents(context, q.id, q.title),
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.share_outlined, size: 18),
                       tooltip: 'مشاركة اللينك',
                       onPressed: () => shareLink(quizLinkFor(q.id)),
@@ -1749,6 +1771,110 @@ class _CourseQuizzesSection extends ConsumerWidget {
                       onPressed: () => _copyLink(context, q.id),
                     ),
                   ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Every student enrolled in any term of this course, each with their own
+/// WhatsApp button — not a true one-tap bulk send (no such thing exists for
+/// personal WhatsApp without the paid Business API), but a fast way to fire
+/// off a personal message to each student one after another.
+class _ShareQuizWithStudentsSheet extends ConsumerWidget {
+  const _ShareQuizWithStudentsSheet({
+    required this.course,
+    required this.quizId,
+    required this.quizTitle,
+  });
+
+  final Course course;
+  final String quizId;
+  final String quizTitle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final courseTerms =
+        ref.watch(courseTermsProvider(course.id)).valueOrNull ?? [];
+    final studentIds = <String>{};
+    for (final ct in courseTerms) {
+      final enrollments = ref.watch(enrollmentsProvider(ct.id)).valueOrNull;
+      if (enrollments == null) continue;
+      for (final e in enrollments) {
+        if (e.status != 'cancelled') studentIds.add(e.studentId);
+      }
+    }
+    final allStudents = ref.watch(studentsProvider).valueOrNull ?? [];
+    final students = allStudents
+        .where((s) => studentIds.contains(s.id))
+        .toList();
+    final link = quizLinkFor(quizId);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'مشاركة "$quizTitle" مع الطلاب',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+            const Text(
+              'دوس واتساب جنب كل طالب — كل رسالة بتتبعت لوحدها على رقمه',
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 12),
+            if (students.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'لسه مفيش طلاب مسجلين في الكورس ده',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: students.length,
+                  separatorBuilder: (context, i) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final s = students[i];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(s.name),
+                      subtitle: s.phoneWhatsapp == null
+                          ? const Text(
+                              'مفيش رقم واتساب محفوظ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.error,
+                              ),
+                            )
+                          : null,
+                      trailing: s.phoneWhatsapp == null
+                          ? null
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.chat_bubble_outline,
+                                color: AppColors.success,
+                              ),
+                              onPressed: () => launchWhatsapp(
+                                s.phoneWhatsapp!,
+                                text: greetingMessageFor(
+                                  s.name,
+                                  aboutLine:
+                                      'معاك لينك اختبار "$quizTitle" — جاوب عليه واستنى نتيجتك:\n$link',
+                                ),
+                              ),
+                            ),
+                    );
+                  },
                 ),
               ),
           ],

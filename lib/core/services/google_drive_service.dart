@@ -12,6 +12,22 @@ class DriveFolder {
   final String? webViewLink;
 }
 
+class DriveItem {
+  const DriveItem({
+    required this.id,
+    required this.name,
+    required this.isFolder,
+    this.webViewLink,
+  });
+
+  final String id;
+  final String name;
+  final bool isFolder;
+  final String? webViewLink;
+}
+
+const _folderMimeType = 'application/vnd.google-apps.folder';
+
 class GoogleDriveService {
   static const _scopes = <String>[
     'https://www.googleapis.com/auth/drive.readonly',
@@ -59,7 +75,7 @@ class GoogleDriveService {
   ) async {
     final api = await _driveApiFor(account);
     final result = await api.files.list(
-      q: "'$parentFolderId' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+      q: "'$parentFolderId' in parents and mimeType='$_folderMimeType' and trashed=false",
       $fields: 'files(id,name,webViewLink)',
       orderBy: 'name',
       spaces: 'drive',
@@ -70,6 +86,34 @@ class GoogleDriveService {
           (f) => DriveFolder(
             id: f.id ?? '',
             name: f.name ?? '',
+            webViewLink: f.webViewLink,
+          ),
+        )
+        .where((f) => f.id.isNotEmpty)
+        .toList();
+  }
+
+  /// Like [listSubfolders] but also includes individual files (e.g. a
+  /// lecture PDF), each flagged via [DriveItem.isFolder] — used by pickers
+  /// that need to let the owner select a specific file, not just a folder.
+  Future<List<DriveItem>> listFolderContents(
+    GoogleSignInAccount account,
+    String parentFolderId,
+  ) async {
+    final api = await _driveApiFor(account);
+    final result = await api.files.list(
+      q: "'$parentFolderId' in parents and trashed=false",
+      $fields: 'files(id,name,webViewLink,mimeType)',
+      orderBy: 'folder,name',
+      spaces: 'drive',
+      pageSize: 200,
+    );
+    return (result.files ?? [])
+        .map(
+          (f) => DriveItem(
+            id: f.id ?? '',
+            name: f.name ?? '',
+            isFolder: f.mimeType == _folderMimeType,
             webViewLink: f.webViewLink,
           ),
         )

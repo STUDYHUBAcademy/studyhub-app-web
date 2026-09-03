@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/contact_links.dart';
 import '../../../courses/domain/entities/course.dart';
 import '../../../courses/presentation/providers/courses_providers.dart';
+import '../../../courses/presentation/screens/drive_folder_picker_screen.dart';
 import '../../quiz_link.dart';
 import '../providers/quizzes_providers.dart';
 
@@ -108,6 +109,15 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
     }
   }
 
+  Future<void> _browseDrive() async {
+    final link = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (context) => const DriveFolderPickerScreen(allowFiles: true),
+      ),
+    );
+    if (link != null) _videoLinkController.text = link;
+  }
+
   Future<void> _showLinkDialog(String quizId, String title) async {
     final link = quizLinkFor(quizId);
     await showDialog<void>(
@@ -168,12 +178,25 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
               decoration: const InputDecoration(labelText: 'عنوان الاختبار'),
             ),
             const SizedBox(height: 14),
-            TextField(
-              controller: _videoLinkController,
-              textDirection: TextDirection.ltr,
-              decoration: const InputDecoration(
-                labelText: 'لينك الفيديو/المرجع (اختياري)',
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _videoLinkController,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'لينك الفيديو/المرجع (اختياري)',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _browseDrive,
+                  tooltip: 'تصفّح Drive',
+                  icon: const Icon(Icons.folder_open_outlined),
+                ),
+              ],
             ),
             const SizedBox(height: 14),
             const Text(

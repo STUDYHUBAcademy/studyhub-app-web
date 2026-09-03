@@ -9,7 +9,12 @@ import '../../../../core/services/google_sign_in_button.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class DriveFolderPickerScreen extends StatefulWidget {
-  const DriveFolderPickerScreen({super.key});
+  const DriveFolderPickerScreen({super.key, this.allowFiles = false});
+
+  /// When true, individual files show up alongside folders and tapping one
+  /// immediately returns its link — for pickers that need a specific file
+  /// (e.g. a lecture PDF), not just a folder.
+  final bool allowFiles;
 
   @override
   State<DriveFolderPickerScreen> createState() =>
@@ -19,7 +24,7 @@ class DriveFolderPickerScreen extends StatefulWidget {
 class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
   final _service = GoogleDriveService();
   final List<DriveFolder> _path = [];
-  Future<List<DriveFolder>>? _future;
+  Future<List<DriveItem>>? _future;
 
   GoogleSignInAccount? _account;
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
@@ -94,13 +99,27 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
     final account = _account;
     if (account == null) return;
     setState(() {
-      _future = _service.listSubfolders(account, _current.id);
+      _future = _service.listFolderContents(account, _current.id);
     });
   }
 
-  void _openFolder(DriveFolder folder) {
-    setState(() => _path.add(folder));
+  void _openFolder(DriveItem folder) {
+    setState(
+      () => _path.add(
+        DriveFolder(
+          id: folder.id,
+          name: folder.name,
+          webViewLink: folder.webViewLink,
+        ),
+      ),
+    );
     _load();
+  }
+
+  void _selectFile(DriveItem file) {
+    final link =
+        file.webViewLink ?? 'https://drive.google.com/file/d/${file.id}/view';
+    Navigator.of(context).pop(link);
   }
 
   void _goToBreadcrumb(int index) {
@@ -218,7 +237,7 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
   }
 
   Widget _buildFolderBody() {
-    return FutureBuilder<List<DriveFolder>>(
+    return FutureBuilder<List<DriveItem>>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -252,27 +271,37 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
             ),
           );
         }
-        final folders = snapshot.data ?? [];
-        if (folders.isEmpty) {
-          return const Center(
+        final items = (snapshot.data ?? [])
+            .where((i) => widget.allowFiles || i.isFolder)
+            .toList();
+        if (items.isEmpty) {
+          return Center(
             child: Text(
-              'مفيش مجلدات فرعية هنا',
-              style: TextStyle(color: AppColors.textMuted),
+              widget.allowFiles ? 'المجلد ده فاضي' : 'مفيش مجلدات فرعية هنا',
+              style: const TextStyle(color: AppColors.textMuted),
             ),
           );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(10),
-          itemCount: folders.length,
+          itemCount: items.length,
           itemBuilder: (context, i) {
-            final folder = folders[i];
+            final item = items[i];
             return Card(
               margin: const EdgeInsets.only(bottom: 6),
               child: ListTile(
-                leading: const Icon(Icons.folder, color: AppColors.accent),
-                title: Text(folder.name),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () => _openFolder(folder),
+                leading: Icon(
+                  item.isFolder
+                      ? Icons.folder
+                      : Icons.insert_drive_file_outlined,
+                  color: AppColors.accent,
+                ),
+                title: Text(item.name),
+                trailing: item.isFolder
+                    ? const Icon(Icons.chevron_left)
+                    : const Icon(Icons.check_circle_outline, size: 18),
+                onTap: () =>
+                    item.isFolder ? _openFolder(item) : _selectFile(item),
               ),
             );
           },

@@ -102,10 +102,23 @@ async function generateQuestions(
 
   const prompt =
     `You are drafting a self-check multiple-choice quiz for a tutoring academy from the attached lecture file(s). ` +
-    `Produce between 10 and 20 questions covering the material's key concepts (not trivial trivia). ` +
+    `Let the NUMBER of questions be driven by how much substantive content is actually there — enough to meaningfully ` +
+    `cover every major concept and worked example, but never pad with repetitive or trivial filler questions just to ` +
+    `hit a target count. A short, narrow file might only deserve 5-8 questions; a long, dense chapter might deserve ` +
+    `25+. Do not aim for a fixed number. ` +
+    `PRIORITIZE two things above generic concept-testing: (1) any worked/solved example in the material — write ` +
+    `question(s) that test the specific method, reasoning, or numeric result of that exact example; (2) any ` +
+    `practice question, exercise, or problem already present in the file itself — adapt each one into a multiple-` +
+    `choice question (converting a free-response problem into one correct answer + 3 plausible distractors) rather ` +
+    `than skipping it. Only after covering worked examples and existing questions, add further questions on other ` +
+    `key concepts the file covers. ` +
     `Each question needs exactly 4 plausible options and a 0-based correct_index. ` +
     `Set "topic" to a short label for the section/concept the question covers (used to group weak-area feedback) — ` +
     `reuse the same topic label for multiple questions from the same section. ` +
+    `If a question depends on a diagram, figure, or circuit shown in the file (and isn't already fully worked-example ` +
+    `numbers you can just state), you cannot show that image to the student — instead make the question fully ` +
+    `self-contained by describing the diagram's exact configuration/values in the question text itself (e.g. state ` +
+    `the component values and connections of a circuit in words) rather than saying "refer to the figure". ` +
     `Write any mathematical expression, formula, or symbol (in the question text or in an option) as LaTeX wrapped ` +
     `in single dollar signs, e.g. $\\sigma = P/A$ or $\\tau_{avg} = \\frac{P}{A}$ — never as plain-text/unicode math ` +
     `(no "P/A", no "τ_ave"). Prose stays plain text; only the math itself goes inside $...$. ${languageNote} ` +

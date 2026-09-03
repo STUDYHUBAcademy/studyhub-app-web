@@ -119,21 +119,30 @@ async function generateQuestions(
     },
   };
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiApiKey,
+  // Gemini's shared free-tier capacity occasionally returns a transient
+  // 503 "model overloaded" — retry a couple of times with backoff before
+  // giving up, so a passing spike doesn't have to be a user-facing failure.
+  const maxAttempts = 3;
+  let res: Response | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": geminiApiKey,
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    },
-  );
-  if (!res.ok) {
-    throw new Error(`Gemini API error: ${res.status} ${await res.text()}`);
+    );
+    if (res.ok || res.status !== 503 || attempt === maxAttempts) break;
+    await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
   }
-  const data = await res.json();
+  if (!res!.ok) {
+    throw new Error(`Gemini API error: ${res!.status} ${await res!.text()}`);
+  }
+  const data = await res!.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini رجّع رد فاضي — جرّب تاني");
 

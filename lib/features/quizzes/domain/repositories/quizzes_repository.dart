@@ -14,4 +14,15 @@ abstract class QuizzesRepository {
     required String direction,
     required List<Map<String, dynamic>> questions,
   });
+
+  /// Drafts a quiz automatically from Drive file content via the
+  /// `generate-quiz` Edge Function (Gemini). [files] is one map per
+  /// selected file: `{'id': ..., 'mime_type': ...}`.
+  Future<Quiz> generateQuiz({
+    required String title,
+    String? courseId,
+    required String direction,
+    required List<Map<String, String?>> files,
+    required String driveAccessToken,
+  });
 }

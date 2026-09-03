@@ -18,12 +18,14 @@ class DriveItem {
     required this.name,
     required this.isFolder,
     this.webViewLink,
+    this.mimeType,
   });
 
   final String id;
   final String name;
   final bool isFolder;
   final String? webViewLink;
+  final String? mimeType;
 }
 
 const _folderMimeType = 'application/vnd.google-apps.folder';
@@ -115,9 +117,20 @@ class GoogleDriveService {
             name: f.name ?? '',
             isFolder: f.mimeType == _folderMimeType,
             webViewLink: f.webViewLink,
+            mimeType: f.mimeType,
           ),
         )
         .where((f) => f.id.isNotEmpty)
         .toList();
+  }
+
+  /// The raw OAuth access token for the Drive-readonly scope, to hand to a
+  /// trusted backend (an Edge Function) that needs to fetch file content
+  /// itself rather than going through this client.
+  Future<String> accessTokenFor(GoogleSignInAccount account) async {
+    final authorization =
+        await account.authorizationClient.authorizationForScopes(_scopes) ??
+        await account.authorizationClient.authorizeScopes(_scopes);
+    return authorization.accessToken;
   }
 }

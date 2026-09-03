@@ -39,4 +39,22 @@ class QuizzesRepositoryImpl implements QuizzesRepository {
     });
     return Quiz.fromJson(row);
   }
+
+  @override
+  Future<Quiz> generateQuiz({
+    required String title,
+    String? courseId,
+    required String direction,
+    required List<Map<String, String?>> files,
+    required String driveAccessToken,
+  }) async {
+    final row = await _remote.generateQuiz({
+      'title': title,
+      'course_id': courseId,
+      'direction': direction,
+      'files': files,
+      'drive_access_token': driveAccessToken,
+    });
+    return Quiz.fromJson(row);
+  }
 }

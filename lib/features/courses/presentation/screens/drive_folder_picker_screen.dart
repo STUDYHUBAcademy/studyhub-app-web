@@ -9,12 +9,21 @@ import '../../../../core/services/google_sign_in_button.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class DriveFolderPickerScreen extends StatefulWidget {
-  const DriveFolderPickerScreen({super.key, this.allowFiles = false});
+  const DriveFolderPickerScreen({
+    super.key,
+    this.allowFiles = false,
+    this.multiSelect = false,
+  });
 
   /// When true, individual files show up alongside folders and tapping one
   /// immediately returns its link — for pickers that need a specific file
   /// (e.g. a lecture PDF), not just a folder.
   final bool allowFiles;
+
+  /// When true (implies [allowFiles]), tapping a file toggles a checkbox
+  /// instead of returning immediately — the "تم" button then pops the
+  /// whole `List<DriveItem>` selection at once.
+  final bool multiSelect;
 
   @override
   State<DriveFolderPickerScreen> createState() =>
@@ -25,6 +34,7 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
   final _service = GoogleDriveService();
   final List<DriveFolder> _path = [];
   Future<List<DriveItem>>? _future;
+  final Map<String, DriveItem> _selected = {};
 
   GoogleSignInAccount? _account;
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
@@ -117,9 +127,23 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
   }
 
   void _selectFile(DriveItem file) {
+    if (widget.multiSelect) {
+      setState(() {
+        if (_selected.containsKey(file.id)) {
+          _selected.remove(file.id);
+        } else {
+          _selected[file.id] = file;
+        }
+      });
+      return;
+    }
     final link =
         file.webViewLink ?? 'https://drive.google.com/file/d/${file.id}/view';
     Navigator.of(context).pop(link);
+  }
+
+  void _confirmSelection() {
+    Navigator.of(context).pop(_selected.values.toList());
   }
 
   void _goToBreadcrumb(int index) {
@@ -189,6 +213,12 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
       body: _account == null ? _buildSignInBody() : _buildFolderBody(),
       floatingActionButton: _account == null
           ? null
+          : widget.multiSelect
+          ? FloatingActionButton.extended(
+              onPressed: _selected.isEmpty ? null : _confirmSelection,
+              icon: const Icon(Icons.check),
+              label: Text('تم (${_selected.length})'),
+            )
           : FloatingActionButton.extended(
               onPressed: _selectCurrent,
               icon: const Icon(Icons.check),
@@ -271,13 +301,14 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
             ),
           );
         }
+        final showFiles = widget.allowFiles || widget.multiSelect;
         final items = (snapshot.data ?? [])
-            .where((i) => widget.allowFiles || i.isFolder)
+            .where((i) => showFiles || i.isFolder)
             .toList();
         if (items.isEmpty) {
           return Center(
             child: Text(
-              widget.allowFiles ? 'المجلد ده فاضي' : 'مفيش مجلدات فرعية هنا',
+              showFiles ? 'المجلد ده فاضي' : 'مفيش مجلدات فرعية هنا',
               style: const TextStyle(color: AppColors.textMuted),
             ),
           );
@@ -287,6 +318,7 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
           itemCount: items.length,
           itemBuilder: (context, i) {
             final item = items[i];
+            final isSelected = _selected.containsKey(item.id);
             return Card(
               margin: const EdgeInsets.only(bottom: 6),
               child: ListTile(
@@ -299,6 +331,11 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
                 title: Text(item.name),
                 trailing: item.isFolder
                     ? const Icon(Icons.chevron_left)
+                    : widget.multiSelect
+                    ? Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => _selectFile(item),
+                      )
                     : const Icon(Icons.check_circle_outline, size: 18),
                 onTap: () =>
                     item.isFolder ? _openFolder(item) : _selectFile(item),

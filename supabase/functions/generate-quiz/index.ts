@@ -21,7 +21,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
 const GOOGLE_NATIVE_MIME_TYPES = new Set([
   "application/vnd.google-apps.document",
   "application/vnd.google-apps.presentation",

@@ -13,6 +13,8 @@ class DriveFolderPickerScreen extends StatefulWidget {
     super.key,
     this.allowFiles = false,
     this.multiSelect = false,
+    this.initialAccount,
+    this.onAccountResolved,
   });
 
   /// When true, individual files show up alongside folders and tapping one
@@ -24,6 +26,18 @@ class DriveFolderPickerScreen extends StatefulWidget {
   /// instead of returning immediately — the "تم" button then pops the
   /// whole `List<DriveItem>` selection at once.
   final bool multiSelect;
+
+  /// Skip this screen's own sign-in resolution and use this account
+  /// directly — for a caller that already resolved one itself and needs
+  /// the exact same account for a later step (e.g. re-fetching an access
+  /// token), since a *second* silent sign-in attempt can spuriously fail
+  /// on web right after an interactive one just succeeded.
+  final GoogleSignInAccount? initialAccount;
+
+  /// Called once this screen resolves an account on its own (only relevant
+  /// when [initialAccount] wasn't already provided) — lets the caller cache
+  /// it for later instead of re-resolving.
+  final ValueChanged<GoogleSignInAccount>? onAccountResolved;
 
   @override
   State<DriveFolderPickerScreen> createState() =>
@@ -48,7 +62,11 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
     super.initState();
     final rootId = dotenv.env['GOOGLE_DRIVE_ROOT_FOLDER_ID'] ?? '';
     _path.add(DriveFolder(id: rootId, name: 'مواد الكورسات'));
-    _resolveAccount();
+    if (widget.initialAccount != null) {
+      _onSignedIn(widget.initialAccount!, notify: false);
+    } else {
+      _resolveAccount();
+    }
   }
 
   @override
@@ -95,13 +113,14 @@ class _DriveFolderPickerScreenState extends State<DriveFolderPickerScreen> {
     }
   }
 
-  void _onSignedIn(GoogleSignInAccount account) {
+  void _onSignedIn(GoogleSignInAccount account, {bool notify = true}) {
     if (!mounted) return;
     setState(() {
       _account = account;
       _resolvingAccount = false;
       _signInError = null;
     });
+    if (notify) widget.onAccountResolved?.call(account);
     _load();
   }
 

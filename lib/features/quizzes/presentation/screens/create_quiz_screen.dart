@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -25,6 +26,7 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
   final _videoLinkController = TextEditingController();
   final _questionsController = TextEditingController();
   final _driveService = GoogleDriveService();
+  GoogleSignInAccount? _driveAccount;
   Course? _selectedCourse;
   String _direction = 'rtl';
   String _mode = 'ai';
@@ -116,7 +118,11 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
   Future<void> _pickFiles() async {
     final selected = await Navigator.of(context).push<List<DriveItem>>(
       MaterialPageRoute(
-        builder: (context) => const DriveFolderPickerScreen(multiSelect: true),
+        builder: (context) => DriveFolderPickerScreen(
+          multiSelect: true,
+          initialAccount: _driveAccount,
+          onAccountResolved: (account) => _driveAccount = account,
+        ),
       ),
     );
     if (selected != null) setState(() => _selectedFiles = selected);
@@ -135,7 +141,11 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
 
     setState(() => _saving = true);
     try {
-      final account = await _driveService.attemptSilentSignIn();
+      // Reuse the account the file picker already resolved — a *second*
+      // independent silent sign-in attempt can spuriously fail on web
+      // right after the interactive one that just succeeded.
+      final account =
+          _driveAccount ?? await _driveService.attemptSilentSignIn();
       if (account == null) {
         throw Exception('محتاج تسجّل دخول بحساب جوجل الأول (من زرار الملفات)');
       }
@@ -165,7 +175,11 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
   Future<void> _browseDriveForLink() async {
     final link = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (context) => const DriveFolderPickerScreen(allowFiles: true),
+        builder: (context) => DriveFolderPickerScreen(
+          allowFiles: true,
+          initialAccount: _driveAccount,
+          onAccountResolved: (account) => _driveAccount = account,
+        ),
       ),
     );
     if (link != null) _videoLinkController.text = link;

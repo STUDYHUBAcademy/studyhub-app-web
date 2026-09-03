@@ -14,6 +14,7 @@
 // (or `supabase functions deploy generate-quiz` if you have the CLI).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,14 +50,11 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
+// The Edge Function worker has a hard memory ceiling — a large PDF can
+// easily blow past it once you account for the raw bytes, the base64
+// copy, and the JSON body sent to Gemini all needing to coexist in
+// memory. Guard with a friendly error instead of a cryptic worker crash.
+const MAX_FILE_BYTES = 12 * 1024 * 1024; // 12MB
 
 /// Fetches one Drive file as PDF bytes — exporting Google-native docs to
 /// PDF, or downloading already-binary files (PDF and friends) as-is.
@@ -78,10 +76,18 @@ async function fetchFileAsPdf(
     );
   }
   const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > MAX_FILE_BYTES) {
+    const mb = (bytes.length / (1024 * 1024)).toFixed(1);
+    throw new Error(
+      `الملف كبير جدًا (${mb} ميجا) — أقصى حجم مدعوم حاليًا ${
+        MAX_FILE_BYTES / (1024 * 1024)
+      } ميجا. جرّب ملف أصغر أو قسّمه.`,
+    );
+  }
   const mimeType = isGoogleNative
     ? "application/pdf"
     : file.mime_type || "application/pdf";
-  return { base64: bytesToBase64(bytes), mimeType };
+  return { base64: encodeBase64(bytes), mimeType };
 }
 
 async function generateQuestions(
@@ -195,11 +201,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "مفيش توكن Drive" }, 400);
     }
 
-    const fileParts = await Promise.all(
-      files.map((f: { id: string; mime_type?: string | null }) =>
-        fetchFileAsPdf(f, drive_access_token)
-      ),
-    );
+    // Sequential, not Promise.all — fetching several files at once would
+    // stack their peak memory footprints on top of each other right when
+    // the worker is already tightest on resources.
+    const fileParts: { base64: string; mimeType: string }[] = [];
+    for (const f of files as { id: string; mime_type?: string | null }[]) {
+      fileParts.push(await fetchFileAsPdf(f, drive_access_token));
+    }
 
     const questions = await generateQuestions(
       fileParts,

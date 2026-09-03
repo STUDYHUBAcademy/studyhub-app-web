@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 
@@ -8,6 +9,9 @@ import '../../../../core/utils/contact_links.dart';
 import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/phone_number_field.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
+import '../../../quizzes/presentation/providers/quizzes_providers.dart';
+import '../../../quizzes/presentation/screens/quizzes_screen.dart'
+    show quizLinkFor;
 import '../../../students/domain/entities/student.dart';
 import '../../../students/presentation/providers/students_providers.dart';
 import '../../../students/presentation/widgets/student_source_fields.dart';
@@ -646,6 +650,8 @@ class _CourseDetailBody extends ConsumerWidget {
           _DemosSection(course: course),
           const SizedBox(height: 10),
           _CourseTermsSection(course: course),
+          const SizedBox(height: 10),
+          _CourseQuizzesSection(course: course),
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () => _delete(context, ref),
@@ -1681,6 +1687,70 @@ class _CourseTermsSection extends ConsumerWidget {
                 );
               },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Quizzes tied to this course via `quizzes.course_id` — kept visible here
+/// (not just under the standalone "الاختبارات" screen) so they persist and
+/// stay findable if the course reopens for a later term.
+class _CourseQuizzesSection extends ConsumerWidget {
+  const _CourseQuizzesSection({required this.course});
+
+  final Course course;
+
+  void _copyLink(BuildContext context, String quizId) {
+    Clipboard.setData(ClipboardData(text: quizLinkFor(quizId)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('اتنسخ اللينك')));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final quizzesAsync = ref.watch(quizzesProvider);
+    final quizzes = (quizzesAsync.valueOrNull ?? [])
+        .where((q) => q.courseId == course.id)
+        .toList();
+    if (quizzes.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'الاختبارات',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            const SizedBox(height: 10),
+            for (final q in quizzes)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        q.title,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share_outlined, size: 18),
+                      tooltip: 'مشاركة اللينك',
+                      onPressed: () => shareLink(quizLinkFor(q.id)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy_outlined, size: 18),
+                      tooltip: 'نسخ اللينك',
+                      onPressed: () => _copyLink(context, q.id),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

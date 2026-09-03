@@ -39,6 +39,11 @@
   .q label:hover{border-color:var(--amber);}
   .q input[type=radio]{margin-inline-end:8px;}
 
+  /* Question/option text takes its direction from the quiz's own content
+     language (set via JS), independent of the page's Arabic UI chrome. */
+  #questions[dir="ltr"]{text-align:left;}
+  #quizTitle[dir="ltr"]{direction:ltr;}
+
   .btn{width:100%;padding:15px;background:var(--navy);color:#fff;border:none;border-radius:5px;font-family:'Tajawal',sans-serif;font-size:16px;font-weight:700;cursor:pointer;}
   .btn:hover{background:var(--navy-deep);}
   .btn:disabled{background:#b7bacb;cursor:not-allowed;}
@@ -120,7 +125,7 @@ async function loadQuiz(){
   }
   const { data, error } = await supabaseClient
     .from('quizzes')
-    .select('id,title,video_link,questions')
+    .select('id,title,video_link,questions,direction')
     .eq('id', quizId)
     .eq('is_published', true)
     .single();
@@ -131,7 +136,10 @@ async function loadQuiz(){
     return;
   }
   quiz = data;
+  const dir = quiz.direction === 'ltr' ? 'ltr' : 'rtl';
   document.getElementById('quizTitle').textContent = quiz.title;
+  document.getElementById('quizTitle').dir = dir;
+  document.getElementById('questions').dir = dir;
   renderQuestions();
   hide(document.getElementById('loadingCard'));
   show(document.getElementById('quizForm'));
@@ -210,6 +218,8 @@ async function submitAttempt(){
 
   const weakWrap = document.getElementById('weakTopics');
   weakWrap.innerHTML = '';
+  weakWrap.dir = quiz.direction === 'ltr' ? 'ltr' : 'rtl';
+  weakWrap.style.textAlign = quiz.direction === 'ltr' ? 'left' : 'right';
   let anyWeak = false;
   Object.entries(topicStats).forEach(([topic, s]) => {
     if(s.right < s.total){

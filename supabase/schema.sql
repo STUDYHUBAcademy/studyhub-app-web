@@ -594,6 +594,11 @@ create table if not exists quizzes (
   course_id uuid references courses(id) on delete set null,
   video_link text,
   questions jsonb not null default '[]',
+  -- Base text direction for THIS quiz's content (question/option text) on
+  -- the public page — independent of the page's own Arabic UI chrome,
+  -- since a quiz's subject matter can be in English (e.g. an English-medium
+  -- engineering course) or Arabic.
+  direction text not null default 'rtl' check (direction in ('rtl','ltr')),
   is_published boolean not null default true,
   created_at timestamptz not null default now()
 );

@@ -99,7 +99,10 @@ async function generateQuestions(
     `Produce between 10 and 20 questions covering the material's key concepts (not trivial trivia). ` +
     `Each question needs exactly 4 plausible options and a 0-based correct_index. ` +
     `Set "topic" to a short label for the section/concept the question covers (used to group weak-area feedback) — ` +
-    `reuse the same topic label for multiple questions from the same section. ${languageNote} ` +
+    `reuse the same topic label for multiple questions from the same section. ` +
+    `Write any mathematical expression, formula, or symbol (in the question text or in an option) as LaTeX wrapped ` +
+    `in single dollar signs, e.g. $\\sigma = P/A$ or $\\tau_{avg} = \\frac{P}{A}$ — never as plain-text/unicode math ` +
+    `(no "P/A", no "τ_ave"). Prose stays plain text; only the math itself goes inside $...$. ${languageNote} ` +
     `Return ONLY the JSON array matching the given schema, nothing else.`;
 
   const body = {

@@ -125,7 +125,38 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
         ),
       ),
     );
-    if (selected != null) setState(() => _selectedFiles = selected);
+    if (selected == null) return;
+    setState(() {
+      _selectedFiles = selected;
+      if (_titleController.text.trim().isEmpty && selected.isNotEmpty) {
+        _titleController.text = _titleFromFileName(selected.first.name);
+      }
+    });
+  }
+
+  /// Strips a file extension (".pdf", ".pptx"...) so the auto-filled title
+  /// doesn't carry it — still just a starting point, the owner can edit it.
+  String _titleFromFileName(String fileName) {
+    final dot = fileName.lastIndexOf('.');
+    return dot > 0 ? fileName.substring(0, dot) : fileName;
+  }
+
+  /// Arabic noun/number agreement for "file(s) selected" — "1 ملفات" reads
+  /// as broken Arabic, so this picks the grammatically correct form per
+  /// count instead of blindly interpolating the number into a fixed string.
+  String _selectedFilesLabel(int count) {
+    switch (count) {
+      case 0:
+        return 'اختيار ملفات من Drive';
+      case 1:
+        return 'اختيار ملفات (ملف واحد مختار)';
+      case 2:
+        return 'اختيار ملفات (ملفين مختارين)';
+      default:
+        return count <= 10
+            ? 'اختيار ملفات ($count ملفات مختارة)'
+            : 'اختيار ملفات ($count ملف مختار)';
+    }
   }
 
   Future<void> _generate() async {
@@ -282,11 +313,7 @@ class _CreateQuizScreenState extends ConsumerState<CreateQuizScreen> {
               OutlinedButton.icon(
                 onPressed: _pickFiles,
                 icon: const Icon(Icons.folder_open_outlined, size: 18),
-                label: Text(
-                  _selectedFiles.isEmpty
-                      ? 'اختيار ملفات من Drive'
-                      : 'اختيار ملفات (${_selectedFiles.length} متاختارة)',
-                ),
+                label: Text(_selectedFilesLabel(_selectedFiles.length)),
               ),
               if (_selectedFiles.isNotEmpty) ...[
                 const SizedBox(height: 8),

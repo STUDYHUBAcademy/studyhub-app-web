@@ -21,4 +21,22 @@ class QuizzesRepositoryImpl implements QuizzesRepository {
         .watchAttempts(quizId)
         .map((rows) => rows.map(QuizAttempt.fromJson).toList());
   }
+
+  @override
+  Future<Quiz> addQuiz({
+    required String title,
+    String? courseId,
+    String? videoLink,
+    required String direction,
+    required List<Map<String, dynamic>> questions,
+  }) async {
+    final row = await _remote.addQuiz({
+      'title': title,
+      'course_id': courseId,
+      'video_link': videoLink,
+      'direction': direction,
+      'questions': questions,
+    });
+    return Quiz.fromJson(row);
+  }
 }

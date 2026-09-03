@@ -10,8 +10,7 @@ import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/phone_number_field.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../../../quizzes/presentation/providers/quizzes_providers.dart';
-import '../../../quizzes/presentation/screens/quizzes_screen.dart'
-    show quizLinkFor;
+import '../../../quizzes/quiz_link.dart';
 import '../../../students/domain/entities/student.dart';
 import '../../../students/presentation/providers/students_providers.dart';
 import '../../../students/presentation/widgets/student_source_fields.dart';

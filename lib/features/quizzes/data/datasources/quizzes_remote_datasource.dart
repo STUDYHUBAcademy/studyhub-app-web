@@ -19,4 +19,8 @@ class QuizzesRemoteDatasource {
         .eq('quiz_id', quizId)
         .order('created_at', ascending: false);
   }
+
+  Future<Map<String, dynamic>> addQuiz(Map<String, dynamic> quiz) async {
+    return _client.from('quizzes').insert(quiz).select().single();
+  }
 }

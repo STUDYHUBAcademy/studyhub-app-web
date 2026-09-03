@@ -8,12 +8,9 @@ import '../../../../core/utils/contact_links.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../../domain/entities/quiz.dart';
 import '../../domain/entities/quiz_attempt.dart';
+import '../../quiz_link.dart';
 import '../providers/quizzes_providers.dart';
-
-const _quizBaseUrl =
-    'https://studyhubacademy.github.io/studyhub-app-web/quiz.html';
-
-String quizLinkFor(String quizId) => '$_quizBaseUrl?id=$quizId';
+import 'create_quiz_screen.dart';
 
 class QuizzesScreen extends ConsumerWidget {
   const QuizzesScreen({super.key});
@@ -24,6 +21,13 @@ class QuizzesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('📝 الاختبارات')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const CreateQuizScreen()),
+        ),
+        icon: const Icon(Icons.add),
+        label: const Text('اختبار جديد'),
+      ),
       body: quizzesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => RealtimeErrorView(

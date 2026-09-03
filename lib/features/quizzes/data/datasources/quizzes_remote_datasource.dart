@@ -24,14 +24,17 @@ class QuizzesRemoteDatasource {
     return _client.from('quizzes').insert(quiz).select().single();
   }
 
-  /// Calls the `generate-quiz` Edge Function, which reads the given Drive
-  /// files, asks Gemini to draft the MCQs, and inserts the resulting quiz
-  /// row itself (as the calling owner, via their forwarded session).
+  /// Calls the `generate-quiz` Edge Function (deployed under the Supabase
+  /// dashboard's auto-generated slug "bright-responder" — the "Name" field
+  /// there is just a display label and doesn't change the actual routing
+  /// slug), which reads the given Drive files, asks Gemini to draft the
+  /// MCQs, and inserts the resulting quiz row itself (as the calling owner,
+  /// via their forwarded session).
   Future<Map<String, dynamic>> generateQuiz(
     Map<String, dynamic> payload,
   ) async {
     final response = await _client.functions.invoke(
-      'generate-quiz',
+      'bright-responder',
       body: payload,
     );
     final data = response.data;

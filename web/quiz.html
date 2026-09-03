@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Hub — الاختبار</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --ink:#12203f; --navy:#1c2f57; --navy-deep:#0a1428;
+    --amber:#c99a3e; --amber-soft:#eeddb4;
+    --paper:#f4f1e8; --paper-line:#dcd6c2; --card:#ffffff;
+    --ok:#2f6b4f; --warn:#a97a1f; --err:#a83232; --muted:#8a8367;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);background-image:linear-gradient(var(--paper-line) 1px, transparent 1px);background-size:100% 44px;font-family:'Tajawal',sans-serif;color:var(--ink);min-height:100vh;padding:0 0 70px;}
+
+  header{background:var(--navy-deep);background-image:radial-gradient(circle at 12% 15%, rgba(201,154,62,0.20), transparent 42%),radial-gradient(circle at 88% 85%, rgba(201,154,62,0.12), transparent 50%);color:#f4f1e8;padding:44px 24px 66px;text-align:center;}
+  header .eyebrow{font-size:12.5px;letter-spacing:1px;color:var(--amber-soft);text-transform:uppercase;font-weight:600;margin-bottom:10px;}
+  header h1{font-size:30px;margin:0 0 6px;font-weight:800;}
+  header p{font-size:14px;color:#c9d0e0;max-width:440px;margin:0 auto;line-height:1.8;}
+
+  .shell{max-width:640px;margin:-38px auto 0;padding:0 20px;}
+
+  .card{background:var(--card);border-radius:6px;border:1px solid var(--paper-line);box-shadow:0 22px 44px -20px rgba(13,24,48,0.32);padding:32px 26px;position:relative;overflow:hidden;margin-bottom:20px;}
+  .card::before{content:"";position:absolute;top:0;right:0;left:0;height:6px;background:linear-gradient(90deg,var(--navy),var(--amber),var(--navy));}
+
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-weight:700;font-size:14px;margin-bottom:7px;color:var(--navy-deep);}
+  input[type=text],input[type=tel]{width:100%;padding:12px 14px;border:1.5px solid #d8d2bd;border-radius:4px;font-family:'Tajawal',sans-serif;font-size:15px;background:#fffdf8;}
+  input:focus{outline:none;border-color:var(--amber);}
+
+  .q{margin:20px 0;padding-top:16px;border-top:1px solid #eef1f2;}
+  .q:first-child{border-top:0;padding-top:0;}
+  .q b{display:block;margin-bottom:8px;font-size:15px;}
+  .q label{display:block;margin:8px 0;padding:11px 13px;border:1.5px solid var(--paper-line);border-radius:6px;cursor:pointer;background:#fffdf8;}
+  .q label:hover{border-color:var(--amber);}
+  .q input[type=radio]{margin-inline-end:8px;}
+
+  .btn{width:100%;padding:15px;background:var(--navy);color:#fff;border:none;border-radius:5px;font-family:'Tajawal',sans-serif;font-size:16px;font-weight:700;cursor:pointer;}
+  .btn:hover{background:var(--navy-deep);}
+  .btn:disabled{background:#b7bacb;cursor:not-allowed;}
+  .btn-outline{width:100%;padding:14px;background:none;border:1.5px solid var(--paper-line);color:var(--navy);border-radius:5px;font-family:'Tajawal',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
+  .btn-outline:hover{border-color:var(--amber);color:var(--amber);}
+
+  .msg{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px;}
+  .field-err{color:var(--err);font-size:13px;font-weight:700;margin-top:10px;text-align:center;}
+
+  .center{text-align:center;}
+  .score{font-size:48px;font-weight:800;color:var(--navy-deep);margin:8px 0;}
+  .level{font-size:19px;font-weight:800;margin-bottom:6px;}
+  .advice{color:var(--muted);font-size:14px;margin:0 0 6px;}
+  .topic{background:#faf8f1;border:1px dashed var(--paper-line);border-radius:6px;padding:13px 15px;margin:10px 0;font-size:13.5px;line-height:1.8;}
+  .topic b{color:var(--navy-deep);}
+  .save-note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:14px;}
+  .save-note.err{color:var(--err);}
+
+  [hidden]{display:none!important;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">STUDYHUB</div>
+  <h1 id="quizTitle">جاري تحميل الاختبار...</h1>
+  <p>جاوب على الأسئلة، وهنقولك تحتاج تراجع إيه قبل ما تكمل.</p>
+</header>
+
+<div class="shell">
+
+  <div id="loadingCard" class="card msg">جاري تحميل الاختبار...</div>
+
+  <div id="notFoundCard" class="card msg" hidden>الاختبار غير موجود أو غير متاح حاليًا.</div>
+
+  <form id="quizForm" class="card" hidden>
+    <div class="field">
+      <label>اسمك</label>
+      <input type="text" id="studentName" required>
+    </div>
+    <div class="field">
+      <label>رقم الواتساب (اختياري)</label>
+      <input type="tel" id="studentPhone" dir="ltr">
+    </div>
+    <div id="questions"></div>
+    <div id="formErr" class="field-err" hidden></div>
+    <button type="submit" class="btn" id="submitBtn">إنهاء الاختبار وعرض النتيجة</button>
+  </form>
+
+  <div id="resultCard" class="card center" hidden>
+    <h2 id="resultName"></h2>
+    <div class="score" id="scoreText"></div>
+    <div class="level" id="levelText"></div>
+    <p class="advice" id="adviceText"></p>
+    <div id="weakTopics"></div>
+    <div id="saveNote" class="save-note"></div>
+    <button type="button" class="btn-outline" id="retrySaveBtn" hidden>إعادة محاولة الحفظ</button>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://mgealzxrjefwapfmsotk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_gRMw9x_R0t5nlfcyoaFWWw_kliz5yra';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const quizId = new URLSearchParams(location.search).get('id');
+let quiz = null;
+let pendingAttempt = null;
+
+function show(el){ el.hidden = false; }
+function hide(el){ el.hidden = true; }
+
+async function loadQuiz(){
+  if(!quizId){
+    hide(document.getElementById('loadingCard'));
+    show(document.getElementById('notFoundCard'));
+    return;
+  }
+  const { data, error } = await supabaseClient
+    .from('quizzes')
+    .select('id,title,video_link,questions')
+    .eq('id', quizId)
+    .eq('is_published', true)
+    .single();
+
+  if(error || !data){
+    hide(document.getElementById('loadingCard'));
+    show(document.getElementById('notFoundCard'));
+    return;
+  }
+  quiz = data;
+  document.getElementById('quizTitle').textContent = quiz.title;
+  renderQuestions();
+  hide(document.getElementById('loadingCard'));
+  show(document.getElementById('quizForm'));
+}
+
+function renderQuestions(){
+  const wrap = document.getElementById('questions');
+  wrap.innerHTML = '';
+  (quiz.questions || []).forEach((item, i) => {
+    const d = document.createElement('div');
+    d.className = 'q';
+    let html = `<b>${i+1}. ${item.text}</b>`;
+    (item.options || []).forEach((opt, j) => {
+      html += `<label><input type="radio" name="q${i}" value="${j}" required> ${opt}</label>`;
+    });
+    d.innerHTML = html;
+    wrap.appendChild(d);
+  });
+}
+
+function levelFor(pct){
+  if(pct >= 85) return { label: '🟢 ممتاز', advice: 'مستوى ممتاز. جاهز تكمل للشابتر التالي.' };
+  if(pct >= 70) return { label: '🟡 جيد', advice: 'مستوى جيد، بس عندك نقاط محددة تحتاج تقويتها قبل ما تكمل.' };
+  if(pct >= 50) return { label: '🟠 محتاج مراجعة', advice: 'الأفضل ترجع للأجزاء الضعيفة وتشوف الفيديو المرتبط تاني، ثم تعيد الاختبار.' };
+  return { label: '🔴 محتاج تقوية الأساس', advice: 'ارجع لشرح الفيديو من الأساس، ركز على النقاط أدناه، وبعدها أعد الاختبار.' };
+}
+
+async function submitAttempt(){
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+
+  const studentName = document.getElementById('studentName').value.trim();
+  const studentPhone = document.getElementById('studentPhone').value.trim();
+  const errEl = document.getElementById('formErr');
+
+  if(!studentName){
+    errEl.textContent = 'اكتب اسمك الأول.';
+    show(errEl);
+    submitBtn.disabled = false;
+    return;
+  }
+
+  const questions = quiz.questions || [];
+  let correctCount = 0;
+  const topicStats = {};
+  const answers = [];
+
+  for(let i = 0; i < questions.length; i++){
+    const checked = document.querySelector(`input[name="q${i}"]:checked`);
+    if(!checked){
+      errEl.textContent = 'جاوب على كل الأسئلة قبل الإنهاء.';
+      show(errEl);
+      submitBtn.disabled = false;
+      return;
+    }
+    const item = questions[i];
+    const chosen = Number(checked.value);
+    const ok = chosen === item.correct_index;
+    if(ok) correctCount++;
+    answers.push(chosen);
+    const topic = item.topic || quiz.title;
+    if(!topicStats[topic]) topicStats[topic] = { right: 0, total: 0 };
+    topicStats[topic].total++;
+    if(ok) topicStats[topic].right++;
+  }
+
+  hide(errEl);
+  const totalQuestions = questions.length;
+  const scorePct = totalQuestions ? Math.round((correctCount / totalQuestions) * 10000) / 100 : 0;
+  const level = levelFor(scorePct);
+
+  document.getElementById('resultName').textContent = 'نتيجة ' + studentName;
+  document.getElementById('scoreText').textContent = scorePct + '%';
+  document.getElementById('levelText').textContent = level.label;
+  document.getElementById('adviceText').textContent = level.advice;
+
+  const weakWrap = document.getElementById('weakTopics');
+  weakWrap.innerHTML = '';
+  let anyWeak = false;
+  Object.entries(topicStats).forEach(([topic, s]) => {
+    if(s.right < s.total){
+      anyWeak = true;
+      const d = document.createElement('div');
+      d.className = 'topic';
+      const msg = s.right === 0 ? 'محتاج تقوية واضحة' : 'محتاج مراجعة سريعة';
+      d.innerHTML = `<b>${topic}</b><br>${msg} — ارجع تشوف الفيديو المرتبط بالنقطة دي تاني.`;
+      weakWrap.appendChild(d);
+    }
+  });
+  if(!anyWeak){
+    weakWrap.innerHTML = '<div class="topic"><b>ممتاز:</b> ما فيش نقاط ضعف ظاهرة في الاختبار ده.</div>';
+  }
+
+  hide(document.getElementById('quizForm'));
+  show(document.getElementById('resultCard'));
+
+  pendingAttempt = {
+    quiz_id: quizId,
+    student_name: studentName,
+    student_phone: studentPhone || null,
+    total_questions: totalQuestions,
+    correct_count: correctCount,
+    score_pct: scorePct,
+    answers: answers,
+  };
+  await saveAttempt();
+}
+
+async function saveAttempt(){
+  const noteEl = document.getElementById('saveNote');
+  const retryBtn = document.getElementById('retrySaveBtn');
+  noteEl.className = 'save-note';
+  noteEl.textContent = 'جاري حفظ نتيجتك...';
+  hide(retryBtn);
+
+  const { error } = await supabaseClient.from('quiz_attempts').insert(pendingAttempt);
+  if(error){
+    noteEl.className = 'save-note err';
+    noteEl.textContent = 'حصل خطأ في حفظ النتيجة — نتيجتك محفوظة على الشاشة دي، جرب تحفظ تاني.';
+    show(retryBtn);
+    return;
+  }
+  noteEl.textContent = 'تم حفظ نتيجتك بنجاح ✅';
+}
+
+document.getElementById('quizForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  submitAttempt();
+});
+document.getElementById('retrySaveBtn').addEventListener('click', saveAttempt);
+
+loadQuiz();
+</script>
+</body>
+</html>

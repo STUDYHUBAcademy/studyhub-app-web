@@ -8,6 +8,7 @@ import '../../features/courses/presentation/screens/courses_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/finance/presentation/screens/finance_screen.dart';
 import '../../features/marketers/presentation/screens/marketers_screen.dart';
+import '../../features/quizzes/presentation/screens/quizzes_screen.dart';
 import '../../features/settings/presentation/screens/more_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/sessions/presentation/screens/sessions_screen.dart';
@@ -51,6 +52,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/marketers',
       builder: (context, state) => const MarketersScreen(),
+    ),
+    GoRoute(
+      path: '/quizzes',
+      builder: (context, state) => const QuizzesScreen(),
     ),
     GoRoute(path: '/chat', builder: (context, state) => const ChatListScreen()),
     GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),

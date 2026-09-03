@@ -31,6 +31,11 @@ const _moreItems = [
     icon: Icons.campaign_rounded,
     route: '/marketers',
   ),
+  MoreMenuItem(
+    title: '📝 الاختبارات',
+    icon: Icons.quiz_rounded,
+    route: '/quizzes',
+  ),
   MoreMenuItem(title: '💬 الشات', icon: Icons.forum_rounded, route: '/chat'),
   MoreMenuItem(
     title: '✅ المهام والملاحظات',

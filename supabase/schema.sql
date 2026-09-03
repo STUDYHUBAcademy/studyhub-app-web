@@ -581,6 +581,38 @@ create trigger trg_log_owner_withdrawal_created
   for each row execute function log_owner_withdrawal_created();
 
 -- ─────────────────────────────────────────────────────────────────────────
+-- Video quizzes — one row per quiz (10-20 MCQs authored offline and
+-- inserted as a single SQL statement, not edited field-by-field), plus the
+-- attempts students submit through the public web/quiz.html page.
+-- questions shape: [{ "topic": text, "text": text, "options": [text...],
+-- "correct_index": int }, ...] — a jsonb array, not a CHECK constraint, so
+-- a new quiz is always a single insert.
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists quizzes (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  course_id uuid references courses(id) on delete set null,
+  video_link text,
+  questions jsonb not null default '[]',
+  is_published boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_quizzes_course_id on quizzes(course_id);
+
+create table if not exists quiz_attempts (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid not null references quizzes(id) on delete cascade,
+  student_name text not null,
+  student_phone text,
+  total_questions integer not null,
+  correct_count integer not null,
+  score_pct numeric(5,2) not null,
+  answers jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_quiz_attempts_quiz_id on quiz_attempts(quiz_id);
+
+-- ─────────────────────────────────────────────────────────────────────────
 -- Row Level Security
 -- Every table: the 2 owners get full access. tutor_applications additionally
 -- allows anonymous INSERT only (the public tutor registration form).
@@ -593,7 +625,7 @@ declare
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
     'tutor_ledger','private_sessions','transactions','tasks','academy_expenses','owner_withdrawals',
     'chat_channels','chat_messages','tutor_applications','activity_log',
-    'marketers','app_settings'
+    'marketers','app_settings','quizzes','quiz_attempts'
   ];
 begin
   foreach t in array owner_tables loop
@@ -634,6 +666,25 @@ create policy public_can_add_catalog on subject_catalog_custom
   with check (true);
 grant select, insert on subject_catalog_custom to anon, authenticated;
 
+-- Public quiz page (web/quiz.html): anyone with a quiz's link can read that
+-- one published quiz (no listing — RLS still blocks a bare `select *`
+-- without a matching id filter from being useful) and submit an attempt,
+-- but never read attempts back — students must not see each other's
+-- names/scores.
+drop policy if exists public_can_read_quizzes on quizzes;
+create policy public_can_read_quizzes on quizzes
+  for select
+  to public
+  using (is_published);
+grant select on quizzes to anon, authenticated;
+
+drop policy if exists public_can_submit_attempt on quiz_attempts;
+create policy public_can_submit_attempt on quiz_attempts
+  for insert
+  to public
+  with check (true);
+grant insert on quiz_attempts to anon, authenticated;
+
 -- ─────────────────────────────────────────────────────────────────────────
 -- Storage buckets
 -- ─────────────────────────────────────────────────────────────────────────
@@ -661,7 +712,8 @@ declare
     'profiles','tutor_applications','tutors','universities','terms',
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
     'tutor_ledger','private_sessions','transactions','tasks','academy_expenses','owner_withdrawals',
-    'chat_channels','chat_messages','marketers','app_settings','activity_log'
+    'chat_channels','chat_messages','marketers','app_settings','activity_log',
+    'quizzes','quiz_attempts'
   ];
 begin
   foreach t in array realtime_tables loop

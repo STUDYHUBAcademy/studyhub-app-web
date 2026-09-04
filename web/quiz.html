@@ -118,6 +118,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_gRMw9x_R0t5nlfcyoaFWWw_kliz5yra';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const quizId = new URLSearchParams(location.search).get('id');
+const termId = new URLSearchParams(location.search).get('term');
 let quiz = null;
 let pendingAttempt = null;
 
@@ -258,6 +259,7 @@ async function submitAttempt(){
 
   pendingAttempt = {
     quiz_id: quizId,
+    term_id: termId || null,
     student_name: studentName,
     student_phone: studentPhone || null,
     total_questions: totalQuestions,

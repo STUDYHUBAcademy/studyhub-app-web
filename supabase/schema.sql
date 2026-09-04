@@ -607,6 +607,12 @@ create index if not exists idx_quizzes_course_id on quizzes(course_id);
 create table if not exists quiz_attempts (
   id uuid primary key default gen_random_uuid(),
   quiz_id uuid not null references quizzes(id) on delete cascade,
+  -- Set from a ?term=<id> on the link the owner shared, not guessed from
+  -- the attempt's timestamp — accurate as long as the owner tags the link
+  -- with the right term before sharing it that term (nullable: an old
+  -- link shared before this existed, or shared without picking a term,
+  -- just leaves attempts as "term unspecified").
+  term_id uuid references terms(id) on delete set null,
   student_name text not null,
   student_phone text,
   total_questions integer not null,

@@ -10,6 +10,7 @@ import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/phone_number_field.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../../../quizzes/presentation/providers/quizzes_providers.dart';
+import '../../../quizzes/presentation/widgets/term_picker.dart';
 import '../../../quizzes/quiz_link.dart';
 import '../../../students/domain/entities/student.dart';
 import '../../../students/presentation/providers/students_providers.dart';
@@ -1701,13 +1702,36 @@ class _CourseQuizzesSection extends ConsumerWidget {
 
   final Course course;
 
-  void _copyLink(BuildContext context, String quizId) {
-    Clipboard.setData(ClipboardData(text: quizLinkFor(quizId)));
+  Future<void> _copyLink(
+    BuildContext context,
+    WidgetRef ref,
+    String quizId,
+  ) async {
+    final termId = await pickShareTerm(context, ref);
+    if (!context.mounted) return;
+    Clipboard.setData(ClipboardData(text: quizLinkFor(quizId, termId: termId)));
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('اتنسخ اللينك')));
   }
 
-  void _shareWithStudents(BuildContext context, String quizId, String title) {
+  Future<void> _shareLinkDirect(
+    BuildContext context,
+    WidgetRef ref,
+    String quizId,
+  ) async {
+    final termId = await pickShareTerm(context, ref);
+    if (!context.mounted) return;
+    shareLink(quizLinkFor(quizId, termId: termId));
+  }
+
+  Future<void> _shareWithStudents(
+    BuildContext context,
+    WidgetRef ref,
+    String quizId,
+    String title,
+  ) async {
+    final termId = await pickShareTerm(context, ref);
+    if (!context.mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1719,6 +1743,7 @@ class _CourseQuizzesSection extends ConsumerWidget {
         course: course,
         quizId: quizId,
         quizTitle: title,
+        termId: termId,
       ),
     );
   }
@@ -1757,17 +1782,17 @@ class _CourseQuizzesSection extends ConsumerWidget {
                       icon: const Icon(Icons.groups_outlined, size: 18),
                       tooltip: 'مشاركة مع الطلاب المسجلين',
                       onPressed: () =>
-                          _shareWithStudents(context, q.id, q.title),
+                          _shareWithStudents(context, ref, q.id, q.title),
                     ),
                     IconButton(
                       icon: const Icon(Icons.share_outlined, size: 18),
                       tooltip: 'مشاركة اللينك',
-                      onPressed: () => shareLink(quizLinkFor(q.id)),
+                      onPressed: () => _shareLinkDirect(context, ref, q.id),
                     ),
                     IconButton(
                       icon: const Icon(Icons.copy_outlined, size: 18),
                       tooltip: 'نسخ اللينك',
-                      onPressed: () => _copyLink(context, q.id),
+                      onPressed: () => _copyLink(context, ref, q.id),
                     ),
                   ],
                 ),
@@ -1788,11 +1813,13 @@ class _ShareQuizWithStudentsSheet extends ConsumerWidget {
     required this.course,
     required this.quizId,
     required this.quizTitle,
+    this.termId,
   });
 
   final Course course;
   final String quizId;
   final String quizTitle;
+  final String? termId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1810,7 +1837,7 @@ class _ShareQuizWithStudentsSheet extends ConsumerWidget {
     final students = allStudents
         .where((s) => studentIds.contains(s.id))
         .toList();
-    final link = quizLinkFor(quizId);
+    final link = quizLinkFor(quizId, termId: termId);
 
     return SafeArea(
       child: Padding(

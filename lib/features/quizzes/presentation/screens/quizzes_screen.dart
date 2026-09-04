@@ -12,6 +12,7 @@ import '../../domain/entities/quiz.dart';
 import '../../domain/entities/quiz_attempt.dart';
 import '../../quiz_link.dart';
 import '../providers/quizzes_providers.dart';
+import '../widgets/term_picker.dart';
 import 'create_quiz_screen.dart';
 
 class QuizzesScreen extends ConsumerWidget {
@@ -73,10 +74,20 @@ class _QuizCard extends ConsumerWidget {
     );
   }
 
-  void _copyLink(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: quizLinkFor(quiz.id)));
+  Future<void> _copyLink(BuildContext context, WidgetRef ref) async {
+    final termId = await pickShareTerm(context, ref);
+    if (!context.mounted) return;
+    Clipboard.setData(
+      ClipboardData(text: quizLinkFor(quiz.id, termId: termId)),
+    );
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('اتنسخ اللينك')));
+  }
+
+  Future<void> _shareLink(BuildContext context, WidgetRef ref) async {
+    final termId = await pickShareTerm(context, ref);
+    if (!context.mounted) return;
+    shareLink(quizLinkFor(quiz.id, termId: termId));
   }
 
   @override
@@ -161,7 +172,7 @@ class _QuizCard extends ConsumerWidget {
               Row(
                 children: [
                   TextButton.icon(
-                    onPressed: () => shareLink(quizLinkFor(quiz.id)),
+                    onPressed: () => _shareLink(context, ref),
                     icon: const Icon(Icons.share_outlined, size: 16),
                     label: const Text(
                       'مشاركة اللينك',
@@ -169,7 +180,7 @@ class _QuizCard extends ConsumerWidget {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => _copyLink(context),
+                    onPressed: () => _copyLink(context, ref),
                     icon: const Icon(Icons.copy_outlined, size: 16),
                     label: const Text('نسخ', style: TextStyle(fontSize: 12)),
                   ),
@@ -194,20 +205,6 @@ class _AttemptsSheet extends ConsumerStatefulWidget {
 
 class _AttemptsSheetState extends ConsumerState<_AttemptsSheet> {
   Term? _selectedTerm;
-
-  /// An attempt "belongs" to a term when it was submitted inside that
-  /// term's date range — the only signal we have, since a public quiz
-  /// attempt isn't tied to a specific enrollment/term record.
-  bool _matchesTerm(QuizAttempt attempt, Term term) {
-    if (term.startDate != null && attempt.createdAt.isBefore(term.startDate!)) {
-      return false;
-    }
-    if (term.endDate != null &&
-        attempt.createdAt.isAfter(term.endDate!.add(const Duration(days: 1)))) {
-      return false;
-    }
-    return true;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -264,9 +261,7 @@ class _AttemptsSheetState extends ConsumerState<_AttemptsSheet> {
                   final term = _selectedTerm;
                   final attempts = term == null
                       ? allAttempts
-                      : allAttempts
-                            .where((a) => _matchesTerm(a, term))
-                            .toList();
+                      : allAttempts.where((a) => a.termId == term.id).toList();
                   if (attempts.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),

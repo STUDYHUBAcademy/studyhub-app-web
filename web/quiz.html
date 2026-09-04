@@ -76,19 +76,19 @@
 
 <header>
   <div class="eyebrow">STUDYHUB</div>
-  <h1 id="quizTitle">جاري تحميل الاختبار...</h1>
-  <p>جاوب على الأسئلة، وهنقولك تحتاج تراجع إيه قبل ما تكمل.</p>
+  <h1 id="quizTitle">جارٍ تحميل الاختبار...</h1>
+  <p>أجب عن الأسئلة التالية، وسنوضّح لك النقاط التي تحتاج إلى مراجعتها قبل المتابعة.</p>
 </header>
 
 <div class="shell">
 
-  <div id="loadingCard" class="card msg">جاري تحميل الاختبار...</div>
+  <div id="loadingCard" class="card msg">جارٍ تحميل الاختبار...</div>
 
-  <div id="notFoundCard" class="card msg" hidden>الاختبار غير موجود أو غير متاح حاليًا.</div>
+  <div id="notFoundCard" class="card msg" hidden>هذا الاختبار غير موجود أو غير متاح حاليًا.</div>
 
   <form id="quizForm" class="card" hidden>
     <div class="field">
-      <label>اسمك</label>
+      <label>الاسم</label>
       <input type="text" id="studentName" required>
     </div>
     <div class="field">
@@ -178,10 +178,10 @@ function renderQuestions(){
 }
 
 function levelFor(pct){
-  if(pct >= 85) return { label: '🟢 ممتاز', advice: 'مستوى ممتاز. جاهز تكمل للشابتر التالي.' };
-  if(pct >= 70) return { label: '🟡 جيد', advice: 'مستوى جيد، بس عندك نقاط محددة تحتاج تقويتها قبل ما تكمل.' };
-  if(pct >= 50) return { label: '🟠 محتاج مراجعة', advice: 'الأفضل ترجع للأجزاء الضعيفة وتشوف الفيديو المرتبط تاني، ثم تعيد الاختبار.' };
-  return { label: '🔴 محتاج تقوية الأساس', advice: 'ارجع لشرح الفيديو من الأساس، ركز على النقاط أدناه، وبعدها أعد الاختبار.' };
+  if(pct >= 85) return { label: '🟢 ممتاز', advice: 'مستوى ممتاز، يمكنك الانتقال إلى الفصل التالي.' };
+  if(pct >= 70) return { label: '🟡 جيد', advice: 'مستوى جيد، ولكن توجد نقاط محددة تحتاج إلى تقويتها قبل المتابعة.' };
+  if(pct >= 50) return { label: '🟠 يحتاج إلى مراجعة', advice: 'يُفضّل العودة إلى الأجزاء الضعيفة ومشاهدة الفيديو المرتبط بها مرة أخرى، ثم إعادة الاختبار.' };
+  return { label: '🔴 يحتاج إلى تقوية الأساسيات', advice: 'يُنصح بمراجعة شرح الفيديو من البداية مع التركيز على النقاط الموضحة أدناه، ثم إعادة الاختبار.' };
 }
 
 async function submitAttempt(){
@@ -193,7 +193,7 @@ async function submitAttempt(){
   const errEl = document.getElementById('formErr');
 
   if(!studentName){
-    errEl.textContent = 'اكتب اسمك الأول.';
+    errEl.textContent = 'يُرجى كتابة الاسم أولًا.';
     show(errEl);
     submitBtn.disabled = false;
     return;
@@ -207,7 +207,7 @@ async function submitAttempt(){
   for(let i = 0; i < questions.length; i++){
     const checked = document.querySelector(`input[name="q${i}"]:checked`);
     if(!checked){
-      errEl.textContent = 'جاوب على كل الأسئلة قبل الإنهاء.';
+      errEl.textContent = 'يُرجى الإجابة عن جميع الأسئلة قبل الإنهاء.';
       show(errEl);
       submitBtn.disabled = false;
       return;
@@ -228,7 +228,7 @@ async function submitAttempt(){
   const scorePct = totalQuestions ? Math.round((correctCount / totalQuestions) * 10000) / 100 : 0;
   const level = levelFor(scorePct);
 
-  document.getElementById('resultName').textContent = 'نتيجة ' + studentName;
+  document.getElementById('resultName').textContent = 'نتيجة الطالب: ' + studentName;
   document.getElementById('scoreText').textContent = scorePct + '%';
   document.getElementById('levelText').textContent = level.label;
   document.getElementById('adviceText').textContent = level.advice;
@@ -243,13 +243,13 @@ async function submitAttempt(){
       anyWeak = true;
       const d = document.createElement('div');
       d.className = 'topic';
-      const msg = s.right === 0 ? 'محتاج تقوية واضحة' : 'محتاج مراجعة سريعة';
-      d.innerHTML = `<b>${topic}</b><br>${msg} — ارجع تشوف الفيديو المرتبط بالنقطة دي تاني.`;
+      const msg = s.right === 0 ? 'يحتاج إلى تقوية واضحة' : 'يحتاج إلى مراجعة سريعة';
+      d.innerHTML = `<b>${topic}</b><br>${msg} — يُرجى مراجعة الفيديو المرتبط بهذه النقطة مرة أخرى.`;
       weakWrap.appendChild(d);
     }
   });
   if(!anyWeak){
-    weakWrap.innerHTML = '<div class="topic"><b>ممتاز:</b> ما فيش نقاط ضعف ظاهرة في الاختبار ده.</div>';
+    weakWrap.innerHTML = '<div class="topic"><b>ممتاز:</b> لا توجد نقاط ضعف واضحة في هذا الاختبار.</div>';
   }
   typesetMath(weakWrap);
 
@@ -272,17 +272,17 @@ async function saveAttempt(){
   const noteEl = document.getElementById('saveNote');
   const retryBtn = document.getElementById('retrySaveBtn');
   noteEl.className = 'save-note';
-  noteEl.textContent = 'جاري حفظ نتيجتك...';
+  noteEl.textContent = 'جارٍ حفظ النتيجة...';
   hide(retryBtn);
 
   const { error } = await supabaseClient.from('quiz_attempts').insert(pendingAttempt);
   if(error){
     noteEl.className = 'save-note err';
-    noteEl.textContent = 'حصل خطأ في حفظ النتيجة — نتيجتك محفوظة على الشاشة دي، جرب تحفظ تاني.';
+    noteEl.textContent = 'حدث خطأ أثناء حفظ النتيجة — نتيجتك ما زالت ظاهرة على الشاشة، يمكنك إعادة المحاولة.';
     show(retryBtn);
     return;
   }
-  noteEl.textContent = 'تم حفظ نتيجتك بنجاح ✅';
+  noteEl.textContent = 'تم حفظ النتيجة بنجاح ✅';
 }
 
 document.getElementById('quizForm').addEventListener('submit', (e) => {

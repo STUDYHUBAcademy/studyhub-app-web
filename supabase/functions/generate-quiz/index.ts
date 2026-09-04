@@ -98,7 +98,8 @@ async function generateQuestions(
   const languageNote =
     direction === "ltr"
       ? "The source content is in English — write the quiz in English."
-      : "المحتوى بالعربي — اكتب الأسئلة بالعربي.";
+      : "اكتب الأسئلة والخيارات باللغة العربية الفصحى (Modern Standard Arabic) فقط — لا تستخدم أي لهجة عامية " +
+        "(لا مصرية، لا خليجية، ولا غيرها). الأسلوب رسمي أكاديمي مناسب لطلاب جامعيين في السعودية.";
 
   const prompt =
     `You are drafting a self-check multiple-choice quiz for a tutoring academy from the attached lecture file(s). ` +

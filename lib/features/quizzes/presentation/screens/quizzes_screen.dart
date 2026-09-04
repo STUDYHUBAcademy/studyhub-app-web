@@ -6,6 +6,8 @@ import 'package:intl/intl.dart' as intl;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/contact_links.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
+import '../../../universities/domain/entities/term.dart';
+import '../../../universities/presentation/providers/universities_providers.dart';
 import '../../domain/entities/quiz.dart';
 import '../../domain/entities/quiz_attempt.dart';
 import '../../quiz_link.dart';
@@ -181,14 +183,36 @@ class _QuizCard extends ConsumerWidget {
   }
 }
 
-class _AttemptsSheet extends ConsumerWidget {
+class _AttemptsSheet extends ConsumerStatefulWidget {
   const _AttemptsSheet({required this.quiz});
 
   final Quiz quiz;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final attemptsAsync = ref.watch(quizAttemptsProvider(quiz.id));
+  ConsumerState<_AttemptsSheet> createState() => _AttemptsSheetState();
+}
+
+class _AttemptsSheetState extends ConsumerState<_AttemptsSheet> {
+  Term? _selectedTerm;
+
+  /// An attempt "belongs" to a term when it was submitted inside that
+  /// term's date range — the only signal we have, since a public quiz
+  /// attempt isn't tied to a specific enrollment/term record.
+  bool _matchesTerm(QuizAttempt attempt, Term term) {
+    if (term.startDate != null && attempt.createdAt.isBefore(term.startDate!)) {
+      return false;
+    }
+    if (term.endDate != null &&
+        attempt.createdAt.isAfter(term.endDate!.add(const Duration(days: 1)))) {
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final attemptsAsync = ref.watch(quizAttemptsProvider(widget.quiz.id));
+    final terms = ref.watch(termsProvider).valueOrNull ?? [];
 
     return SafeArea(
       child: Padding(
@@ -198,9 +222,29 @@ class _AttemptsSheet extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              quiz.title,
+              widget.quiz.title,
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
+            if (terms.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              DropdownButtonFormField<Term?>(
+                initialValue: _selectedTerm,
+                isDense: true,
+                decoration: const InputDecoration(
+                  labelText: 'فلترة حسب الفصل الدراسي',
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('كل الفصول الدراسية'),
+                  ),
+                  ...terms.map(
+                    (t) => DropdownMenuItem(value: t, child: Text(t.name)),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedTerm = v),
+              ),
+            ],
             const SizedBox(height: 12),
             Flexible(
               child: attemptsAsync.when(
@@ -213,16 +257,24 @@ class _AttemptsSheet extends ConsumerWidget {
                   child: RealtimeErrorView(
                     error: err,
                     onRetry: () =>
-                        ref.invalidate(quizAttemptsProvider(quiz.id)),
+                        ref.invalidate(quizAttemptsProvider(widget.quiz.id)),
                   ),
                 ),
-                data: (attempts) {
+                data: (allAttempts) {
+                  final term = _selectedTerm;
+                  final attempts = term == null
+                      ? allAttempts
+                      : allAttempts
+                            .where((a) => _matchesTerm(a, term))
+                            .toList();
                   if (attempts.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'لسه محدش عمل الاختبار ده',
-                        style: TextStyle(color: AppColors.textMuted),
+                        term == null
+                            ? 'لسه محدش عمل الاختبار ده'
+                            : 'لا توجد محاولات في هذا الفصل الدراسي',
+                        style: const TextStyle(color: AppColors.textMuted),
                       ),
                     );
                   }

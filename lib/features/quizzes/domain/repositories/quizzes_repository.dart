@@ -25,4 +25,7 @@ abstract class QuizzesRepository {
     required List<Map<String, String?>> files,
     required String driveAccessToken,
   });
+
+  /// Also cascades to delete every attempt recorded for this quiz.
+  Future<void> deleteQuiz(String id);
 }

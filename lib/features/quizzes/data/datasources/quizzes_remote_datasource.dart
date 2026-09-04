@@ -24,6 +24,10 @@ class QuizzesRemoteDatasource {
     return _client.from('quizzes').insert(quiz).select().single();
   }
 
+  Future<void> deleteQuiz(String id) async {
+    await _client.from('quizzes').delete().eq('id', id);
+  }
+
   /// Calls the `generate-quiz` Edge Function (deployed under the Supabase
   /// dashboard's auto-generated slug "bright-responder" — the "Name" field
   /// there is just a display label and doesn't change the actual routing

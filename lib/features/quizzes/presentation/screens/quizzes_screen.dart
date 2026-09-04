@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/contact_links.dart';
+import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../../../universities/domain/entities/term.dart';
 import '../../../universities/presentation/providers/universities_providers.dart';
@@ -88,6 +89,17 @@ class _QuizCard extends ConsumerWidget {
     final termId = await pickShareTerm(context, ref);
     if (!context.mounted) return;
     shareLink(quizLinkFor(quiz.id, termId: termId));
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await confirmWithPassword(
+      context,
+      title: 'حذف الاختبار نهائيًا',
+      message:
+          'هيتم حذف "${quiz.title}" وكل محاولات الطلاب المسجلة عليه نهائيًا — الأسئلة والنتايج كلها هتضيع. اكتب كلمة المرور للتأكيد.',
+    );
+    if (!confirmed) return;
+    await ref.read(quizzesRepositoryProvider).deleteQuiz(quiz.id);
   }
 
   @override
@@ -183,6 +195,15 @@ class _QuizCard extends ConsumerWidget {
                     onPressed: () => _copyLink(context, ref),
                     icon: const Icon(Icons.copy_outlined, size: 16),
                     label: const Text('نسخ', style: TextStyle(fontSize: 12)),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
+                    tooltip: 'حذف الاختبار',
+                    onPressed: () => _delete(context, ref),
                   ),
                 ],
               ),

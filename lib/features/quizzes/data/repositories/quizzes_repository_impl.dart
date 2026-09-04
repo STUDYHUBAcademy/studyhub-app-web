@@ -57,4 +57,7 @@ class QuizzesRepositoryImpl implements QuizzesRepository {
     });
     return Quiz.fromJson(row);
   }
+
+  @override
+  Future<void> deleteQuiz(String id) => _remote.deleteQuiz(id);
 }

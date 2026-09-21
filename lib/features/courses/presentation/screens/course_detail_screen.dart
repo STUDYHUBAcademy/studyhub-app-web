@@ -1641,17 +1641,64 @@ class _CourseTermsSection extends ConsumerWidget {
 /// Quizzes tied to this course via `quizzes.course_id` — kept visible here
 /// (not just under the standalone "الاختبارات" screen) so they persist and
 /// stay findable if the course reopens for a later term.
-class _CourseTasksSection extends ConsumerStatefulWidget {
+/// Compact, fixed-height entry point — the full list lives in a bottom
+/// sheet ([_CourseTasksSheet]) so a course with many notes over time
+/// doesn't bloat the course page's scroll length.
+class _CourseTasksSection extends ConsumerWidget {
   const _CourseTasksSection({required this.course});
 
   final Course course;
 
+  void _openSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _CourseTasksSheet(course: course),
+    );
+  }
+
   @override
-  ConsumerState<_CourseTasksSection> createState() =>
-      _CourseTasksSectionState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = (ref.watch(tasksProvider).valueOrNull ?? [])
+        .where((t) => t.linkedCourseId == course.id)
+        .toList();
+    final pendingCount = tasks.where((t) => t.status != 'done').length;
+    final doneCount = tasks.length - pendingCount;
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.checklist_outlined, color: AppColors.accent),
+        title: const Text('المهام والملاحظات'),
+        subtitle: Text(
+          tasks.isEmpty
+              ? 'لسه مفيش مهام أو ملاحظات'
+              : '$pendingCount مطلوبة · $doneCount مكتملة',
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+        ),
+        trailing: const Icon(
+          Icons.chevron_left_rounded,
+          color: AppColors.textMuted,
+        ),
+        onTap: () => _openSheet(context),
+      ),
+    );
+  }
 }
 
-class _CourseTasksSectionState extends ConsumerState<_CourseTasksSection> {
+class _CourseTasksSheet extends ConsumerStatefulWidget {
+  const _CourseTasksSheet({required this.course});
+
+  final Course course;
+
+  @override
+  ConsumerState<_CourseTasksSheet> createState() => _CourseTasksSheetState();
+}
+
+class _CourseTasksSheetState extends ConsumerState<_CourseTasksSheet> {
   final _controller = TextEditingController();
   bool _showDone = false;
 
@@ -1679,17 +1726,23 @@ class _CourseTasksSectionState extends ConsumerState<_CourseTasksSection> {
     final done = tasks.where((t) => t.status == 'done').toList();
     final shown = _showDone ? done : pending;
 
-    return Card(
+    return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'المهام والملاحظات',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -1709,7 +1762,7 @@ class _CourseTasksSectionState extends ConsumerState<_CourseTasksSection> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -1730,19 +1783,24 @@ class _CourseTasksSectionState extends ConsumerState<_CourseTasksSection> {
               ],
             ),
             const SizedBox(height: 8),
-            if (shown.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  _showDone ? 'لسه مفيش مهام مكتملة' : 'لسه مفيش مهام مطلوبة',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              )
-            else
-              for (final t in shown) _CourseTaskTile(task: t),
+            Flexible(
+              child: shown.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        _showDone
+                            ? 'لسه مفيش مهام مكتملة'
+                            : 'لسه مفيش مهام مطلوبة',
+                        style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: shown.length,
+                      itemBuilder: (context, i) =>
+                          _CourseTaskTile(task: shown[i]),
+                    ),
+            ),
           ],
         ),
       ),

@@ -4,6 +4,8 @@ import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
+import '../../../courses/domain/entities/course.dart';
+import '../../../courses/presentation/providers/courses_providers.dart';
 import '../../domain/entities/task.dart';
 import '../providers/tasks_providers.dart';
 
@@ -14,7 +16,10 @@ class TasksScreen extends ConsumerWidget {
     final titleController = TextEditingController();
     final bodyController = TextEditingController();
     DateTime? dueDate;
+    Course? linkedCourse;
     String? formError;
+    final courses = (ref.read(coursesProvider).valueOrNull ?? [])
+      ..sort((a, b) => a.subjectName.compareTo(b.subjectName));
 
     final saved = await showDialog<bool>(
       context: context,
@@ -43,6 +48,26 @@ class TasksScreen extends ConsumerWidget {
                     decoration: const InputDecoration(
                       labelText: 'تفاصيل (اختياري)',
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<Course?>(
+                    initialValue: linkedCourse,
+                    decoration: const InputDecoration(
+                      labelText: 'مرتبطة بكورس (اختياري)',
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('بدون كورس'),
+                      ),
+                      ...courses.map(
+                        (c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(c.subjectName),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => linkedCourse = v),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
@@ -108,6 +133,7 @@ class TasksScreen extends ConsumerWidget {
               ? null
               : bodyController.text.trim(),
           dueDate: dueDate,
+          linkedCourseId: linkedCourse?.id,
         );
   }
 
@@ -231,67 +257,78 @@ class TasksScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasksAsync = ref.watch(tasksProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('✅ المهام والملاحظات')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _addTask(context, ref),
-        child: const Icon(Icons.add),
-      ),
-      body: tasksAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => RealtimeErrorView(
-          error: err,
-          onRetry: () => ref.invalidate(tasksProvider),
-        ),
-        data: (tasks) {
-          if (tasks.isEmpty) {
-            return const Center(
-              child: Text(
-                'لسه مفيش مهام مسجلة',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-            );
-          }
-          final open = tasks.where((t) => t.status == 'open').toList();
-          final done = tasks.where((t) => t.status == 'done').toList();
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-            children: [
-              if (open.isNotEmpty) ...[
-                const Text(
-                  'مهام مفتوحة',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                ...open.map(
-                  (t) => _TaskTile(
-                    task: t,
-                    onTap: () => _editTask(context, ref, t),
-                  ),
-                ),
-              ],
-              if (done.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                const Text(
-                  'مهام منجزة',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...done.map(
-                  (t) => _TaskTile(
-                    task: t,
-                    onTap: () => _editTask(context, ref, t),
-                  ),
-                ),
-              ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('✅ المهام والملاحظات'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'مطلوب إنجازه'),
+              Tab(text: 'مكتمل'),
             ],
-          );
-        },
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _addTask(context, ref),
+          child: const Icon(Icons.add),
+        ),
+        body: tasksAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, st) => RealtimeErrorView(
+            error: err,
+            onRetry: () => ref.invalidate(tasksProvider),
+          ),
+          data: (tasks) {
+            final open = tasks.where((t) => t.status != 'done').toList();
+            final done = tasks.where((t) => t.status == 'done').toList();
+            return TabBarView(
+              children: [
+                _TasksList(
+                  tasks: open,
+                  emptyMessage: 'لسه مفيش مهام مطلوبة',
+                  onTapTask: (t) => _editTask(context, ref, t),
+                ),
+                _TasksList(
+                  tasks: done,
+                  emptyMessage: 'لسه مفيش مهام مكتملة',
+                  onTapTask: (t) => _editTask(context, ref, t),
+                ),
+              ],
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _TasksList extends StatelessWidget {
+  const _TasksList({
+    required this.tasks,
+    required this.emptyMessage,
+    required this.onTapTask,
+  });
+
+  final List<Task> tasks;
+  final String emptyMessage;
+  final void Function(Task) onTapTask;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tasks.isEmpty) {
+      return Center(
+        child: Text(
+          emptyMessage,
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+      itemCount: tasks.length,
+      itemBuilder: (context, i) =>
+          _TaskTile(task: tasks[i], onTap: () => onTapTask(tasks[i])),
     );
   }
 }
@@ -307,6 +344,12 @@ class _TaskTile extends ConsumerWidget {
     final done = task.status == 'done';
     final overdue =
         !done && task.dueDate != null && task.dueDate!.isBefore(DateTime.now());
+    final courseName = task.linkedCourseId == null
+        ? null
+        : (ref.watch(coursesProvider).valueOrNull ?? [])
+              .where((c) => c.id == task.linkedCourseId)
+              .firstOrNull
+              ?.subjectName;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -330,6 +373,18 @@ class _TaskTile extends ConsumerWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (courseName != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  '📘 $courseName',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
             if (task.body != null && task.body!.isNotEmpty)
               Text(
                 task.body!,

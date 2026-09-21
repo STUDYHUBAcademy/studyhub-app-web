@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/access_control.dart';
 import '../../../../core/utils/contact_links.dart';
 import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
@@ -166,7 +167,7 @@ class _TutorDetailBody extends ConsumerWidget {
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                   ),
                   const SizedBox(height: 10),
-                  if (tutor.phonePrimary != null)
+                  if (canViewTutorContacts && tutor.phonePrimary != null)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(
@@ -176,7 +177,7 @@ class _TutorDetailBody extends ConsumerWidget {
                       title: Text(tutor.phonePrimary!),
                       onTap: () => launchTel(tutor.phonePrimary!),
                     ),
-                  if (tutor.phoneWhatsapp != null)
+                  if (canViewTutorContacts && tutor.phoneWhatsapp != null)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(
@@ -189,7 +190,9 @@ class _TutorDetailBody extends ConsumerWidget {
                         text: greetingMessageFor(tutor.name),
                       ),
                     ),
-                  if (tutor.email != null && tutor.email!.isNotEmpty)
+                  if (canViewTutorContacts &&
+                      tutor.email != null &&
+                      tutor.email!.isNotEmpty)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/access_control.dart';
 import '../../../../core/utils/acquisition_source.dart';
 import '../../../../core/utils/contact_links.dart';
 import '../../../../core/utils/reauth.dart';
@@ -15,6 +16,8 @@ import '../../../quizzes/quiz_link.dart';
 import '../../../students/domain/entities/student.dart';
 import '../../../students/presentation/providers/students_providers.dart';
 import '../../../students/presentation/widgets/student_source_fields.dart';
+import '../../../tasks/domain/entities/task.dart';
+import '../../../tasks/presentation/providers/tasks_providers.dart';
 import '../../../tutors/domain/entities/tutor.dart';
 import '../../../tutors/presentation/providers/tutors_providers.dart';
 import '../../../universities/domain/entities/term.dart';
@@ -187,37 +190,6 @@ class _CourseDetailBody extends ConsumerWidget {
     await ref
         .read(coursesRepositoryProvider)
         .updateCourseGroupLink(course.id, link.isEmpty ? null : link);
-  }
-
-  Future<void> _editNotes(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController(text: course.notes ?? '');
-    final notes = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ملاحظات عن الكورس'),
-        content: TextField(
-          controller: controller,
-          maxLines: 5,
-          minLines: 3,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'اكتب ملاحظاتك هنا...'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('حفظ'),
-          ),
-        ],
-      ),
-    );
-    if (notes == null) return;
-    await ref
-        .read(coursesRepositoryProvider)
-        .updateCourseNotes(course.id, notes.isEmpty ? null : notes);
   }
 
   Future<void> _browseDrive(BuildContext context, WidgetRef ref) async {
@@ -617,35 +589,7 @@ class _CourseDetailBody extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: const Icon(
-                Icons.sticky_note_2_outlined,
-                color: AppColors.accent,
-              ),
-              title: Text(
-                course.notes == null || course.notes!.isEmpty
-                    ? 'إضافة ملاحظة عن الكورس'
-                    : 'ملاحظات',
-              ),
-              subtitle: course.notes != null && course.notes!.isNotEmpty
-                  ? Text(
-                      course.notes!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                      ),
-                    )
-                  : null,
-              trailing: IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 20),
-                onPressed: () => _editNotes(context, ref),
-              ),
-              onTap: () => _editNotes(context, ref),
-            ),
-          ),
+          _CourseTasksSection(course: course),
           const SizedBox(height: 10),
           _DemosSection(course: course),
           const SizedBox(height: 10),
@@ -907,7 +851,7 @@ class _CourseSummaryCard extends ConsumerWidget {
                         value: tutorName ?? '— لسه مفيش —',
                       ),
                     ),
-                    if (tutor?.phoneWhatsapp != null)
+                    if (canViewTutorContacts && tutor?.phoneWhatsapp != null)
                       IconButton(
                         icon: const Icon(
                           Icons.chat_outlined,
@@ -1697,6 +1641,195 @@ class _CourseTermsSection extends ConsumerWidget {
 /// Quizzes tied to this course via `quizzes.course_id` — kept visible here
 /// (not just under the standalone "الاختبارات" screen) so they persist and
 /// stay findable if the course reopens for a later term.
+class _CourseTasksSection extends ConsumerStatefulWidget {
+  const _CourseTasksSection({required this.course});
+
+  final Course course;
+
+  @override
+  ConsumerState<_CourseTasksSection> createState() =>
+      _CourseTasksSectionState();
+}
+
+class _CourseTasksSectionState extends ConsumerState<_CourseTasksSection> {
+  final _controller = TextEditingController();
+  bool _showDone = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    final title = _controller.text.trim();
+    if (title.isEmpty) return;
+    _controller.clear();
+    await ref
+        .read(tasksRepositoryProvider)
+        .addTask(title: title, linkedCourseId: widget.course.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tasks = (ref.watch(tasksProvider).valueOrNull ?? [])
+        .where((t) => t.linkedCourseId == widget.course.id)
+        .toList();
+    final pending = tasks.where((t) => t.status != 'done').toList();
+    final done = tasks.where((t) => t.status == 'done').toList();
+    final shown = _showDone ? done : pending;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'المهام والملاحظات',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: 'اكتب مهمة أو ملاحظة جديدة...',
+                      isDense: true,
+                    ),
+                    onSubmitted: (_) => _add(),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: AppColors.accent),
+                  onPressed: _add,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _TasksTabButton(
+                    label: 'مطلوب إنجازه (${pending.length})',
+                    selected: !_showDone,
+                    onTap: () => setState(() => _showDone = false),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _TasksTabButton(
+                    label: 'مكتمل (${done.length})',
+                    selected: _showDone,
+                    onTap: () => setState(() => _showDone = true),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (shown.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  _showDone ? 'لسه مفيش مهام مكتملة' : 'لسه مفيش مهام مطلوبة',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              )
+            else
+              for (final t in shown) _CourseTaskTile(task: t),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TasksTabButton extends StatelessWidget {
+  const _TasksTabButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.accent.withValues(alpha: 0.15)
+              : Colors.transparent,
+          border: Border.all(
+            color: selected ? AppColors.accent : AppColors.border,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: selected ? AppColors.accent : AppColors.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseTaskTile extends ConsumerWidget {
+  const _CourseTaskTile({required this.task});
+
+  final Task task;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final done = task.status == 'done';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          Checkbox(
+            value: done,
+            onChanged: (v) => ref
+                .read(tasksRepositoryProvider)
+                .updateTaskStatus(task.id, v == true ? 'done' : 'open'),
+          ),
+          Expanded(
+            child: Text(
+              task.title,
+              style: TextStyle(
+                fontSize: 13,
+                decoration: done ? TextDecoration.lineThrough : null,
+                color: done ? AppColors.textMuted : AppColors.textPrimary,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: AppColors.textMuted),
+            onPressed: () =>
+                ref.read(tasksRepositoryProvider).deleteTask(task.id),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CourseQuizzesSection extends ConsumerWidget {
   const _CourseQuizzesSection({required this.course});
 
@@ -2542,7 +2675,7 @@ class _PaymentHistorySheet extends ConsumerWidget {
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                 ),
-                if (tutor?.phoneWhatsapp != null)
+                if (canViewTutorContacts && tutor?.phoneWhatsapp != null)
                   TextButton.icon(
                     onPressed: () => _shareWithTutor(ref, tutor!, payments),
                     icon: const Icon(Icons.share_outlined, size: 16),

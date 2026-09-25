@@ -401,7 +401,7 @@ create table if not exists transactions (
 );
 
 -- ─────────────────────────────────────────────────────────────────────────
--- Tasks / notes
+-- Tasks (actionable, has a pending/done status)
 -- ─────────────────────────────────────────────────────────────────────────
 create table if not exists tasks (
   id uuid primary key default gen_random_uuid(),
@@ -415,6 +415,17 @@ create table if not exists tasks (
   created_at timestamptz not null default now()
 );
 alter table tasks add column if not exists progress_note text;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Notes (plain freeform text, no status — kept separate from tasks)
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  text text not null,
+  linked_course_id uuid references courses(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_notes_linked_course_id on notes(linked_course_id);
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Chat (one channel per course, plus one general channel)
@@ -634,7 +645,7 @@ declare
   owner_tables text[] := array[
     'profiles','universities','terms','tutors','tutor_status_log','subject_catalog_custom',
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
-    'tutor_ledger','private_sessions','transactions','tasks','academy_expenses','owner_withdrawals',
+    'tutor_ledger','private_sessions','transactions','tasks','notes','academy_expenses','owner_withdrawals',
     'chat_channels','chat_messages','tutor_applications','activity_log',
     'marketers','app_settings','quizzes','quiz_attempts'
   ];
@@ -722,7 +733,7 @@ declare
   realtime_tables text[] := array[
     'profiles','tutor_applications','tutors','universities','terms',
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
-    'tutor_ledger','private_sessions','transactions','tasks','academy_expenses','owner_withdrawals',
+    'tutor_ledger','private_sessions','transactions','tasks','notes','academy_expenses','owner_withdrawals',
     'chat_channels','chat_messages','marketers','app_settings','activity_log',
     'quizzes','quiz_attempts'
   ];

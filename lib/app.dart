@@ -9,6 +9,8 @@ import 'features/activity_log/presentation/providers/activity_log_providers.dart
 import 'features/courses/presentation/providers/courses_providers.dart';
 import 'features/finance/presentation/providers/finance_providers.dart';
 import 'features/marketers/presentation/providers/marketers_providers.dart';
+import 'features/notes/presentation/providers/notes_providers.dart';
+import 'features/quizzes/presentation/providers/quizzes_providers.dart';
 import 'features/sessions/presentation/providers/sessions_providers.dart';
 import 'features/settings/presentation/providers/app_settings_providers.dart';
 import 'features/students/presentation/providers/students_providers.dart';
@@ -51,8 +53,21 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
     } catch (_) {}
 
     if (mounted) {
+      // Every StreamProvider in the app belongs in this list — resuming
+      // from background is the #1 place a stale realtime subscription
+      // shows up as "my change isn't appearing", and a provider left out
+      // here silently keeps serving its last-known-good value with no
+      // error, so nothing else in the app will surface the gap. When
+      // adding a new StreamProvider, add it here too.
       ref.invalidate(coursesProvider);
+      ref.invalidate(courseDemosProvider);
+      ref.invalidate(courseTermsProvider);
+      ref.invalidate(allCourseTermsProvider);
+      ref.invalidate(enrollmentsProvider);
       ref.invalidate(allEnrollmentsProvider);
+      ref.invalidate(tutorLedgerProvider);
+      ref.invalidate(allTutorLedgerProvider);
+      ref.invalidate(allEnrollmentPaymentsProvider);
       ref.invalidate(studentsProvider);
       ref.invalidate(tutorsProvider);
       ref.invalidate(applicationsProvider);
@@ -61,7 +76,10 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
       ref.invalidate(withdrawalsProvider);
       ref.invalidate(ownerProfilesProvider);
       ref.invalidate(tasksProvider);
+      ref.invalidate(notesProvider);
       ref.invalidate(marketersProvider);
+      ref.invalidate(quizzesProvider);
+      ref.invalidate(quizAttemptsProvider);
       ref.invalidate(universitiesProvider);
       ref.invalidate(termsProvider);
       ref.invalidate(activityLogProvider);

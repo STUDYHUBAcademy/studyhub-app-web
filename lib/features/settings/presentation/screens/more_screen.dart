@@ -38,9 +38,14 @@ const _moreItems = [
   ),
   MoreMenuItem(title: '💬 الشات', icon: Icons.forum_rounded, route: '/chat'),
   MoreMenuItem(
-    title: '✅ المهام والملاحظات',
+    title: '✅ المهام',
     icon: Icons.checklist_rounded,
     route: '/tasks',
+  ),
+  MoreMenuItem(
+    title: '🗒️ الملاحظات',
+    icon: Icons.sticky_note_2_rounded,
+    route: '/notes',
   ),
   MoreMenuItem(
     title: '⚙️ الإعدادات',

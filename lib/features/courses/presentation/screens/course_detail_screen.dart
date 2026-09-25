@@ -10,6 +10,8 @@ import '../../../../core/utils/contact_links.dart';
 import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/phone_number_field.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
+import '../../../notes/domain/entities/note.dart';
+import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../quizzes/presentation/providers/quizzes_providers.dart';
 import '../../../quizzes/presentation/widgets/term_picker.dart';
 import '../../../quizzes/quiz_link.dart';
@@ -590,6 +592,8 @@ class _CourseDetailBody extends ConsumerWidget {
           ],
           const SizedBox(height: 10),
           _CourseTasksSection(course: course),
+          const SizedBox(height: 10),
+          _CourseNotesSection(course: course),
           const SizedBox(height: 10),
           _DemosSection(course: course),
           const SizedBox(height: 10),
@@ -1672,7 +1676,7 @@ class _CourseTasksSection extends ConsumerWidget {
     return Card(
       child: ListTile(
         leading: const Icon(Icons.checklist_outlined, color: AppColors.accent),
-        title: const Text('المهام والملاحظات'),
+        title: const Text('المهام'),
         subtitle: Text(
           tasks.isEmpty
               ? 'لسه مفيش مهام أو ملاحظات'
@@ -1739,7 +1743,7 @@ class _CourseTasksSheetState extends ConsumerState<_CourseTasksSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'المهام والملاحظات',
+              'المهام',
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
             const SizedBox(height: 12),
@@ -1881,6 +1885,172 @@ class _CourseTaskTile extends ConsumerWidget {
             icon: const Icon(Icons.close, size: 16, color: AppColors.textMuted),
             onPressed: () =>
                 ref.read(tasksRepositoryProvider).deleteTask(task.id),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Plain freeform notes about the course — kept separate from [_CourseTasksSection]
+/// (which is for actionable, checkable items). Same compact-card-opens-sheet
+/// shape so a growing list of notes doesn't bloat the course page either.
+class _CourseNotesSection extends ConsumerWidget {
+  const _CourseNotesSection({required this.course});
+
+  final Course course;
+
+  void _openSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _CourseNotesSheet(course: course),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notes = (ref.watch(notesProvider).valueOrNull ?? [])
+        .where((n) => n.linkedCourseId == course.id)
+        .toList();
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(
+          Icons.sticky_note_2_outlined,
+          color: AppColors.accent,
+        ),
+        title: const Text('الملاحظات'),
+        subtitle: Text(
+          notes.isEmpty ? 'لسه مفيش ملاحظات' : '${notes.length} ملاحظة',
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+        ),
+        trailing: const Icon(
+          Icons.chevron_left_rounded,
+          color: AppColors.textMuted,
+        ),
+        onTap: () => _openSheet(context),
+      ),
+    );
+  }
+}
+
+class _CourseNotesSheet extends ConsumerStatefulWidget {
+  const _CourseNotesSheet({required this.course});
+
+  final Course course;
+
+  @override
+  ConsumerState<_CourseNotesSheet> createState() => _CourseNotesSheetState();
+}
+
+class _CourseNotesSheetState extends ConsumerState<_CourseNotesSheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    _controller.clear();
+    await ref
+        .read(notesRepositoryProvider)
+        .addNote(text: text, linkedCourseId: widget.course.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notes = (ref.watch(notesProvider).valueOrNull ?? [])
+        .where((n) => n.linkedCourseId == widget.course.id)
+        .toList();
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'الملاحظات',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: 'اكتب ملاحظة جديدة...',
+                      isDense: true,
+                    ),
+                    onSubmitted: (_) => _add(),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: AppColors.accent),
+                  onPressed: _add,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: notes.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'لسه مفيش ملاحظات',
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: notes.length,
+                      itemBuilder: (context, i) =>
+                          _CourseNoteTile(note: notes[i]),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseNoteTile extends ConsumerWidget {
+  const _CourseNoteTile({required this.note});
+
+  final Note note;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(note.text, style: const TextStyle(fontSize: 13)),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: AppColors.textMuted),
+            onPressed: () =>
+                ref.read(notesRepositoryProvider).deleteNote(note.id),
           ),
         ],
       ),

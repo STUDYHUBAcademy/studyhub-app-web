@@ -261,7 +261,7 @@ class TasksScreen extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('✅ المهام والملاحظات'),
+          title: const Text('✅ المهام'),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'مطلوب إنجازه'),

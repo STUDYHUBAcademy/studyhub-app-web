@@ -451,14 +451,6 @@ class DashboardScreen extends ConsumerWidget {
     // Same figure as tutorPaidByCurrency above (every ledger row, any
     // currency) — reused here as the dashboard's headline "paid" number.
     final totalTutorPaid = tutorPaidByCurrency;
-    // The gap between totalTutorPaid and what the per-course table can show:
-    // payments not linked to any course term, so there's no honest subject
-    // to attribute them to. Surfaced as its own line in that table so the
-    // two numbers visibly reconcile instead of looking like a mismatch.
-    final totalGeneralPaid = <String, double>{};
-    tutorGeneralPaid.forEach((_, m) {
-      m.forEach((c, a) => totalGeneralPaid[c] = (totalGeneralPaid[c] ?? 0) + a);
-    });
 
     final courseRemaining = <String, Map<String, double>>{};
     courseCost.forEach((courseId, costMap) {
@@ -908,7 +900,8 @@ class DashboardScreen extends ConsumerWidget {
                       paid: coursePaid,
                       remaining: courseRemaining,
                       courseById: courseById,
-                      generalPaid: totalGeneralPaid,
+                      generalPaid: tutorGeneralPaid,
+                      tutorNames: tutorNames,
                     ),
                   ),
                 ),
@@ -936,7 +929,8 @@ class DashboardScreen extends ConsumerWidget {
                       paid: coursePaid,
                       remaining: courseRemaining,
                       courseById: courseById,
-                      generalPaid: totalGeneralPaid,
+                      generalPaid: tutorGeneralPaid,
+                      tutorNames: tutorNames,
                     ),
                   ),
                 ),
@@ -1020,7 +1014,8 @@ class DashboardScreen extends ConsumerWidget {
                   paid: coursePaid,
                   remaining: courseRemaining,
                   courseById: courseById,
-                  generalPaid: totalGeneralPaid,
+                  generalPaid: tutorGeneralPaid,
+                  tutorNames: tutorNames,
                 ),
               ),
               icon: const Icon(Icons.menu_book_rounded, size: 16),
@@ -1304,6 +1299,7 @@ class _TutorPayablesByCourseSheet extends StatelessWidget {
     required this.remaining,
     required this.courseById,
     required this.generalPaid,
+    required this.tutorNames,
   });
 
   final Map<String, Map<String, double>> due;
@@ -1311,10 +1307,12 @@ class _TutorPayablesByCourseSheet extends StatelessWidget {
   final Map<String, Map<String, double>> remaining;
   final Map<String, Course> courseById;
 
-  /// Paid-but-unlinked-to-any-course-term total — not part of any subject
-  /// row, shown separately so "مدفوع" here plus this equals the dashboard's
-  /// headline total paid instead of looking like a mismatch.
-  final Map<String, double> generalPaid;
+  /// Paid-but-unlinked-to-any-course-term amounts, per tutor — not part of
+  /// any subject row, shown separately (by who it's for) so "مدفوع" here
+  /// plus this equals the dashboard's headline total paid instead of
+  /// looking like a mismatch.
+  final Map<String, Map<String, double>> generalPaid;
+  final Map<String, String> tutorNames;
 
   @override
   Widget build(BuildContext context) {
@@ -1399,27 +1397,36 @@ class _TutorPayablesByCourseSheet extends StatelessWidget {
               ),
             if (generalPaid.isNotEmpty) ...[
               const Divider(height: 20),
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'دفعات مدفوعة بدون ربط بمادة محددة',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    _fmtCurrencyMap(generalPaid),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ],
+              const Text(
+                'دفعات مدفوعة بدون ربط بمادة محددة — حسب المدرس',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
+              const SizedBox(height: 4),
+              for (final entry in generalPaid.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          tutorNames[entry.key] ?? '؟',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _fmtCurrencyMap(entry.value),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ],
         ),

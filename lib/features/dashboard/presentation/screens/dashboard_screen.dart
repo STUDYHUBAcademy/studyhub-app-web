@@ -24,9 +24,17 @@ bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 String _fmtCurrencyMap(Map<String, double> m) {
-  if (m.isEmpty) return '0';
-  return m.entries
-      .map((e) => '${e.value.toStringAsFixed(0)} ${e.key}')
+  // Each "amount CUR" pair is wrapped in a left-to-right isolate so the
+  // bidi algorithm can't interleave/reorder it with its neighbors when the
+  // whole string sits inside this app's RTL layout — without this, two or
+  // more currencies next to each other render scrambled (e.g. the "SAR"
+  // from one pair visually landing next to the number from another).
+  final lri = String.fromCharCode(0x2066); // left-to-right isolate
+  final pdi = String.fromCharCode(0x2069); // pop directional isolate
+  final entries = m.entries.where((e) => e.value.abs() >= 0.5).toList();
+  if (entries.isEmpty) return '0';
+  return entries
+      .map((e) => '$lri${e.value.toStringAsFixed(0)} ${e.key}$pdi')
       .join('، ');
 }
 
@@ -440,10 +448,9 @@ class DashboardScreen extends ConsumerWidget {
     tutorCost.forEach((_, m) {
       m.forEach((c, a) => totalTutorCost[c] = (totalTutorCost[c] ?? 0) + a);
     });
-    final totalTutorPaid = <String, double>{};
-    for (final l in ledger) {
-      totalTutorPaid[l.currency] = (totalTutorPaid[l.currency] ?? 0) + l.amount;
-    }
+    // Same figure as tutorPaidByCurrency above (every ledger row, any
+    // currency) — reused here as the dashboard's headline "paid" number.
+    final totalTutorPaid = tutorPaidByCurrency;
 
     final courseRemaining = <String, Map<String, double>>{};
     courseCost.forEach((courseId, costMap) {

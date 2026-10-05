@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/acquisition_source.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../../../activity_log/presentation/providers/activity_log_providers.dart';
+import '../../../courses/domain/entities/course.dart';
 import '../../../courses/domain/entities/enrollment.dart';
 import '../../../courses/domain/entities/tutor_payment.dart';
 import '../../../courses/presentation/providers/courses_providers.dart';
@@ -337,20 +338,46 @@ class DashboardScreen extends ConsumerWidget {
       }
     }
 
+    // Same cost owed to the tutor as above, but grouped by course instead of
+    // by tutor — "how much does this subject owe/paid/remaining", summed
+    // across every term it's been run in. Payments with no course term
+    // linked can't be attributed to one subject, so (unlike the tutor view)
+    // they simply don't appear here — there's no honest way to assign them.
+    final courseCost = <String, Map<String, double>>{};
+    final coursePaid = <String, Map<String, double>>{};
+    void addCourseCost(
+      String courseId,
+      String currency,
+      double amount,
+      double linkedPaid,
+    ) {
+      final costInner = courseCost.putIfAbsent(courseId, () => {});
+      costInner[currency] = (costInner[currency] ?? 0) + amount;
+      final paidInner = coursePaid.putIfAbsent(courseId, () => {});
+      paidInner[currency] = (paidInner[currency] ?? 0) + linkedPaid;
+    }
+
     for (final ct in courseTerms) {
       final tutorId = courseById[ct.courseId]?.tutorId;
       if (tutorId == null) continue;
       final label = courseLabelForTerm(ct.id);
       if (ct.pricingModel == 'flat') {
         if (ct.tutorFlatFee != null) {
+          final linkedPaid =
+              linkedPaidByCourseTerm['${ct.id}|${ct.tutorFlatFeeCurrency}'] ??
+              0;
           addCost(
             tutorId,
             ct.tutorFlatFeeCurrency,
             ct.tutorFlatFee!,
             label: label,
-            linkedPaid:
-                linkedPaidByCourseTerm['${ct.id}|${ct.tutorFlatFeeCurrency}'] ??
-                0,
+            linkedPaid: linkedPaid,
+          );
+          addCourseCost(
+            ct.courseId,
+            ct.tutorFlatFeeCurrency,
+            ct.tutorFlatFee!,
+            linkedPaid,
           );
         }
       } else {
@@ -363,13 +390,10 @@ class DashboardScreen extends ConsumerWidget {
               (byCurrency[e.currency] ?? 0) + cashCollected(e);
         }
         byCurrency.forEach((currency, amount) {
-          addCost(
-            tutorId,
-            currency,
-            amount * ct.revsharePct / 100,
-            label: label,
-            linkedPaid: linkedPaidByCourseTerm['${ct.id}|$currency'] ?? 0,
-          );
+          final due = amount * ct.revsharePct / 100;
+          final linkedPaid = linkedPaidByCourseTerm['${ct.id}|$currency'] ?? 0;
+          addCost(tutorId, currency, due, label: label, linkedPaid: linkedPaid);
+          addCourseCost(ct.courseId, currency, due, linkedPaid);
         });
       }
     }
@@ -411,6 +435,24 @@ class DashboardScreen extends ConsumerWidget {
       m.forEach(
         (c, a) => totalTutorRemaining[c] = (totalTutorRemaining[c] ?? 0) + a,
       );
+    });
+    final totalTutorCost = <String, double>{};
+    tutorCost.forEach((_, m) {
+      m.forEach((c, a) => totalTutorCost[c] = (totalTutorCost[c] ?? 0) + a);
+    });
+    final totalTutorPaid = <String, double>{};
+    for (final l in ledger) {
+      totalTutorPaid[l.currency] = (totalTutorPaid[l.currency] ?? 0) + l.amount;
+    }
+
+    final courseRemaining = <String, Map<String, double>>{};
+    courseCost.forEach((courseId, costMap) {
+      final paidMap = coursePaid[courseId] ?? {};
+      final remMap = <String, double>{};
+      costMap.forEach((currency, cost) {
+        remMap[currency] = cost - (paidMap[currency] ?? 0);
+      });
+      courseRemaining[courseId] = remMap;
     });
 
     final activeCourses = courses.where((c) => c.status == 'active').length;
@@ -823,10 +865,68 @@ class DashboardScreen extends ConsumerWidget {
           ],
           const SizedBox(height: 20),
           const Text(
-            'المتبقي للمدرسين',
+            'المدرسين',
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
           ),
           const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _KpiCard(
+                  label: 'المستحق',
+                  value: totalTutorCost.isEmpty
+                      ? '0'
+                      : _fmtCurrencyMap(totalTutorCost),
+                  color: AppColors.textPrimary,
+                  icon: Icons.calculate_outlined,
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: AppColors.surface,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder: (context) => _TutorPayablesByCourseSheet(
+                      due: courseCost,
+                      paid: coursePaid,
+                      remaining: courseRemaining,
+                      courseById: courseById,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _KpiCard(
+                  label: 'المدفوع',
+                  value: totalTutorPaid.isEmpty
+                      ? '0'
+                      : _fmtCurrencyMap(totalTutorPaid),
+                  color: AppColors.success,
+                  icon: Icons.payments_outlined,
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: AppColors.surface,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder: (context) => _TutorPayablesByCourseSheet(
+                      due: courseCost,
+                      paid: coursePaid,
+                      remaining: courseRemaining,
+                      courseById: courseById,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Card(
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -859,7 +959,7 @@ class DashboardScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'إجمالي المتبقي',
+                            'إجمالي المتبقي (حسب المدرس)',
                             style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textMuted,
@@ -885,6 +985,30 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppColors.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (context) => _TutorPayablesByCourseSheet(
+                  due: courseCost,
+                  paid: coursePaid,
+                  remaining: courseRemaining,
+                  courseById: courseById,
+                ),
+              ),
+              icon: const Icon(Icons.menu_book_rounded, size: 16),
+              label: const Text(
+                'عرض تفصيل كل مادة (المستحق/المدفوع/الباقي)',
+                style: TextStyle(fontSize: 12),
               ),
             ),
           ),
@@ -1149,6 +1273,142 @@ class _TutorsRemainingSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Per-subject breakdown of what's owed to tutors — a course can run across
+/// several terms over time, so this sums every term that belongs to it.
+class _TutorPayablesByCourseSheet extends StatelessWidget {
+  const _TutorPayablesByCourseSheet({
+    required this.due,
+    required this.paid,
+    required this.remaining,
+    required this.courseById,
+  });
+
+  final Map<String, Map<String, double>> due;
+  final Map<String, Map<String, double>> paid;
+  final Map<String, Map<String, double>> remaining;
+  final Map<String, Course> courseById;
+
+  @override
+  Widget build(BuildContext context) {
+    String labelFor(String courseId) =>
+        courseById[courseId]?.subjectName ?? '؟';
+    final courseIds = due.keys.toList()
+      ..sort((a, b) => labelFor(a).compareTo(labelFor(b)));
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'مستحقات المدرسين حسب المادة',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+            const Text(
+              'الدفعات غير المرتبطة ببند معين مش ظاهرة هنا لأنها مش مربوطة بمادة محددة',
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 8),
+            if (courseIds.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'مفيش مستحقات مسجلة لأي مادة',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: courseIds.length,
+                  separatorBuilder: (context, i) => const Divider(height: 16),
+                  itemBuilder: (context, i) {
+                    final courseId = courseIds[i];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          labelFor(courseId),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _CoursePayableStat(
+                                label: 'مستحق',
+                                value: _fmtCurrencyMap(due[courseId] ?? {}),
+                              ),
+                            ),
+                            Expanded(
+                              child: _CoursePayableStat(
+                                label: 'مدفوع',
+                                value: _fmtCurrencyMap(paid[courseId] ?? {}),
+                                color: AppColors.success,
+                              ),
+                            ),
+                            Expanded(
+                              child: _CoursePayableStat(
+                                label: 'متبقي',
+                                value: _fmtCurrencyMap(
+                                  remaining[courseId] ?? {},
+                                ),
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoursePayableStat extends StatelessWidget {
+  const _CoursePayableStat({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: color ?? AppColors.textPrimary,
+          ),
+        ),
+      ],
     );
   }
 }

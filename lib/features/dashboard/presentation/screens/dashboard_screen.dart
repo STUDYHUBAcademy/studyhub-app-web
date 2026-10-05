@@ -451,6 +451,14 @@ class DashboardScreen extends ConsumerWidget {
     // Same figure as tutorPaidByCurrency above (every ledger row, any
     // currency) — reused here as the dashboard's headline "paid" number.
     final totalTutorPaid = tutorPaidByCurrency;
+    // The gap between totalTutorPaid and what the per-course table can show:
+    // payments not linked to any course term, so there's no honest subject
+    // to attribute them to. Surfaced as its own line in that table so the
+    // two numbers visibly reconcile instead of looking like a mismatch.
+    final totalGeneralPaid = <String, double>{};
+    tutorGeneralPaid.forEach((_, m) {
+      m.forEach((c, a) => totalGeneralPaid[c] = (totalGeneralPaid[c] ?? 0) + a);
+    });
 
     final courseRemaining = <String, Map<String, double>>{};
     courseCost.forEach((courseId, costMap) {
@@ -900,6 +908,7 @@ class DashboardScreen extends ConsumerWidget {
                       paid: coursePaid,
                       remaining: courseRemaining,
                       courseById: courseById,
+                      generalPaid: totalGeneralPaid,
                     ),
                   ),
                 ),
@@ -927,6 +936,7 @@ class DashboardScreen extends ConsumerWidget {
                       paid: coursePaid,
                       remaining: courseRemaining,
                       courseById: courseById,
+                      generalPaid: totalGeneralPaid,
                     ),
                   ),
                 ),
@@ -1010,6 +1020,7 @@ class DashboardScreen extends ConsumerWidget {
                   paid: coursePaid,
                   remaining: courseRemaining,
                   courseById: courseById,
+                  generalPaid: totalGeneralPaid,
                 ),
               ),
               icon: const Icon(Icons.menu_book_rounded, size: 16),
@@ -1292,12 +1303,18 @@ class _TutorPayablesByCourseSheet extends StatelessWidget {
     required this.paid,
     required this.remaining,
     required this.courseById,
+    required this.generalPaid,
   });
 
   final Map<String, Map<String, double>> due;
   final Map<String, Map<String, double>> paid;
   final Map<String, Map<String, double>> remaining;
   final Map<String, Course> courseById;
+
+  /// Paid-but-unlinked-to-any-course-term total — not part of any subject
+  /// row, shown separately so "مدفوع" here plus this equals the dashboard's
+  /// headline total paid instead of looking like a mismatch.
+  final Map<String, double> generalPaid;
 
   @override
   Widget build(BuildContext context) {
@@ -1318,7 +1335,7 @@ class _TutorPayablesByCourseSheet extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
             const Text(
-              'الدفعات غير المرتبطة ببند معين مش ظاهرة هنا لأنها مش مربوطة بمادة محددة',
+              'الدفعات غير المرتبطة بمادة معينة ظاهرة في سطر منفصل تحت',
               style: TextStyle(fontSize: 11, color: AppColors.textMuted),
             ),
             const SizedBox(height: 8),
@@ -1380,6 +1397,30 @@ class _TutorPayablesByCourseSheet extends StatelessWidget {
                   },
                 ),
               ),
+            if (generalPaid.isNotEmpty) ...[
+              const Divider(height: 20),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'دفعات مدفوعة بدون ربط بمادة محددة',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _fmtCurrencyMap(generalPaid),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.success,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

@@ -143,9 +143,11 @@ async function generateQuestions(
   };
 
   // Gemini's shared free-tier capacity occasionally returns a transient
-  // 503 "model overloaded" — retry a couple of times with backoff before
-  // giving up, so a passing spike doesn't have to be a user-facing failure.
-  const maxAttempts = 3;
+  // 503 "model overloaded" — retry several times with growing backoff
+  // before giving up, so a demand spike lasting tens of seconds (not just
+  // a couple of seconds) doesn't have to be a user-facing failure.
+  const maxAttempts = 5;
+  const backoffMs = [2000, 4000, 8000, 16000];
   let res: Response | null = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     res = await fetch(
@@ -160,10 +162,24 @@ async function generateQuestions(
       },
     );
     if (res.ok || res.status !== 503 || attempt === maxAttempts) break;
-    await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+    await new Promise((resolve) =>
+      setTimeout(resolve, backoffMs[attempt - 1])
+    );
   }
   if (!res!.ok) {
-    throw new Error(`Gemini API error: ${res!.status} ${await res!.text()}`);
+    if (res!.status === 503) {
+      throw new Error(
+        "الخدمة مزدحمة جدًا دلوقت (الطلبات على Gemini كتير) — جرّب تاني بعد دقيقة أو اتنين.",
+      );
+    }
+    let detail = await res!.text();
+    try {
+      const parsed = JSON.parse(detail);
+      detail = parsed?.error?.message ?? detail;
+    } catch {
+      // not JSON — keep the raw text
+    }
+    throw new Error(`Gemini API error (${res!.status}): ${detail}`);
   }
   const data = await res!.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;

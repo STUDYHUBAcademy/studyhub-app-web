@@ -21,7 +21,7 @@ class AppTheme {
       ),
     );
 
-    final textTheme = GoogleFonts.tajawalTextTheme(base.textTheme).apply(
+    final textTheme = GoogleFonts.readexProTextTheme(base.textTheme).apply(
       bodyColor: AppColors.textPrimary,
       displayColor: AppColors.textPrimary,
     );

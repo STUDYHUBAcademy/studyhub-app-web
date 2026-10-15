@@ -62,17 +62,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(
-                      Icons.school_rounded,
-                      size: 56,
-                      color: AppColors.accent,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'StudyHub Academy',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                    Image.asset(
+                      'assets/brand/lockup-stacked-on-dark.png',
+                      height: 120,
                     ),
                     const SizedBox(height: 4),
                     Text(

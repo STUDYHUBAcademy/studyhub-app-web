@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 
-/// StudyHub brand palette — from the official brand kit's dark-mode spec
-/// (Studyhub-Brand-Guidelines.pdf / Studyhub-Colors.txt): Ink/Flame/Paper
-/// as the core identity, Mint/Cobalt/Sun as the three product tracks
-/// (Courses/Private Lessons/Products), mapped onto this app's dark theme.
+/// StudyHub brand palette — light/paper mode from the official brand kit
+/// (Studyhub-Brand-Guidelines.pdf / Studyhub-Colors.txt). Restrained on
+/// purpose: Flame is the one identity color everything else defers to,
+/// Ink carries the text, and the status colors (success/warning/error/
+/// info) use the brand's own muted "text on light background" variants
+/// of its three track colors rather than their full vivid swatches, so
+/// the UI doesn't read as a rainbow of competing accents.
 class AppColors {
   AppColors._();
 
-  static const background = Color(0xFF110D2B); // dark mode background
-  static const surface = Color(0xFF1C1740); // dark mode card
-  static const surfaceVariant = Color(0xFF373357); // surface, lightened
-  static const border = Color(0xFF373357);
+  static const background = Color(0xFFFFF8F0); // Paper
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceVariant = Color(0xFFF6EDE1); // Sunken
+  static const border = Color(0xFFE7DDCF); // Line
 
-  static const accent = Color(0xFFFF6B3D); // dark mode Flame
-  static const accentSoft = Color(0xFF4E293F);
+  static const accent = Color(0xFFFF5A26); // Flame
+  static const accentSoft = Color(0xFFFFDFD0);
 
-  static const textPrimary = Color(0xFFF7F1E8); // dark mode text
-  static const textMuted = Color(0xFFB3ADC9); // dark mode secondary text
+  static const textPrimary = Color(0xFF1A1340); // Ink
+  static const textMuted = Color(0xFF5E5878); // Muted
 
-  static const success = Color(0xFF00B884); // Mint — Courses track
-  static const warning = Color(0xFFFFC233); // Sun — Products track
+  static const success = Color(0xFF00734F); // Mint, text-on-light variant
+  static const warning = Color(0xFF8A5A00); // Sun, text-on-light variant
   static const error = Color(0xFFC21F3A); // Danger
-  static const info = Color(0xFF3349F5); // Cobalt — Private Lessons track
+  static const info = Color(0xFF2A3BD6); // Cobalt, text-on-light variant
 }

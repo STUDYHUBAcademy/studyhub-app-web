@@ -62,10 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Image.asset(
-                      'assets/brand/lockup-stacked-on-dark.png',
-                      height: 120,
-                    ),
+                    Image.asset('assets/brand/lockup-stacked.png', height: 120),
                     const SizedBox(height: 4),
                     Text(
                       'تسجيل دخول الملّاك',

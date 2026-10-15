@@ -93,9 +93,9 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
     return MaterialApp.router(
       title: 'StudyHub Academy',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.light,
+      themeMode: ThemeMode.light,
       routerConfig: appRouter,
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],

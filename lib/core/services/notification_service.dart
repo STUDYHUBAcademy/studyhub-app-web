@@ -73,4 +73,79 @@ class NotificationService {
       await _plugin.cancel(id: _idFor(sessionId, i));
     }
   }
+
+  static const _taskReminderOffsets = [Duration(days: 1), Duration(hours: 6)];
+
+  int _taskIdFor(String taskId, int slot) =>
+      (('task_$taskId').hashCode ^ (slot * 0x6A09E667)) & 0x7fffffff;
+
+  /// [dueMoment] is the task's due date treated as end-of-day (the
+  /// `due_date` column has no time component, so "due" means "by the end
+  /// of that day" the way the owner reads it in the UI).
+  Future<void> scheduleTaskReminder({
+    required String taskId,
+    required String title,
+    required String body,
+    required DateTime dueMoment,
+  }) async {
+    if (kIsWeb) return;
+    await init();
+    for (var i = 0; i < _taskReminderOffsets.length; i++) {
+      final fireAt = dueMoment.subtract(_taskReminderOffsets[i]);
+      final id = _taskIdFor(taskId, i);
+      if (fireAt.isBefore(DateTime.now())) {
+        await _plugin.cancel(id: id);
+        continue;
+      }
+      await _plugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'task_reminders',
+            'تذكير المهام',
+            channelDescription: 'تنبيه قبل موعد تسليم المهمة',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> cancelTaskReminder(String taskId) async {
+    if (kIsWeb) return;
+    for (var i = 0; i < _taskReminderOffsets.length; i++) {
+      await _plugin.cancel(id: _taskIdFor(taskId, i));
+    }
+  }
+
+  /// Fires right away — used for "the other owner just added a note/task"
+  /// alerts, as opposed to the time-scheduled reminders above.
+  Future<void> showInstant({
+    required int id,
+    required String title,
+    required String body,
+    String channelId = 'instant_alerts',
+    String channelName = 'تنبيهات فورية',
+  }) async {
+    if (kIsWeb) return;
+    await init();
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+    );
+  }
 }

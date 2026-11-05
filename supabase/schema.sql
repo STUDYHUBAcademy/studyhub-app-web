@@ -423,9 +423,11 @@ create table if not exists notes (
   id uuid primary key default gen_random_uuid(),
   text text not null,
   linked_course_id uuid references courses(id) on delete set null,
+  created_by uuid references profiles(id),
   created_at timestamptz not null default now()
 );
 create index if not exists idx_notes_linked_course_id on notes(linked_course_id);
+alter table notes add column if not exists created_by uuid references profiles(id);
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Chat (one channel per course, plus one general channel)

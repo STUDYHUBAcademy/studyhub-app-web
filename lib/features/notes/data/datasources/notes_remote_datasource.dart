@@ -16,6 +16,7 @@ class NotesRemoteDatasource {
     await _client.from('notes').insert({
       'text': text,
       'linked_course_id': linkedCourseId,
+      'created_by': _client.auth.currentUser?.id,
     });
   }
 

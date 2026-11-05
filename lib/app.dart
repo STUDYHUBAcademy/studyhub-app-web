@@ -90,6 +90,9 @@ class _StudyHubAppState extends ConsumerState<StudyHubApp>
   @override
   Widget build(BuildContext context) {
     ref.watch(sessionsReminderSyncProvider);
+    ref.watch(taskDueReminderSyncProvider);
+    ref.watch(taskCreationAlertProvider);
+    ref.watch(noteCreationAlertProvider);
     return MaterialApp.router(
       title: 'StudyHub Academy',
       debugShowCheckedModeBanner: false,

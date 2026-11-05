@@ -23,6 +23,7 @@ class TasksRemoteDatasource {
       'body': body,
       'due_date': dueDate?.toIso8601String().split('T').first,
       'linked_course_id': linkedCourseId,
+      'created_by': _client.auth.currentUser?.id,
     });
   }
 

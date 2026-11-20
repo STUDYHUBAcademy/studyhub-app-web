@@ -98,6 +98,7 @@ class _WhiteboardCanvasState extends State<WhiteboardCanvas> {
                             liveStroke: c.liveStrokePoints,
                             liveColor: c.penColor,
                             liveWidth: c.penWidth,
+                            pageStyle: c.pageStyle,
                           ),
                         ),
                       ),
@@ -119,12 +120,25 @@ class WhiteboardPainter extends CustomPainter {
     required this.liveStroke,
     required this.liveColor,
     required this.liveWidth,
+    this.pageStyle = PageStyle.blank,
   });
 
   final List<Stroke> strokes;
   final List<Offset>? liveStroke;
   final Color liveColor;
   final double liveWidth;
+  final PageStyle pageStyle;
+
+  static const _ruleSpacing = 48.0;
+
+  void _paintRuledLines(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD7E0EA)
+      ..strokeWidth = 1;
+    for (var y = _ruleSpacing; y < size.height; y += _ruleSpacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
 
   void _paintPolyline(Canvas canvas, List<Offset> points, Paint paint) {
     if (points.isEmpty) return;
@@ -145,6 +159,7 @@ class WhiteboardPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (pageStyle == PageStyle.ruled) _paintRuledLines(canvas, size);
     for (final s in strokes) {
       _paintPolyline(
         canvas,

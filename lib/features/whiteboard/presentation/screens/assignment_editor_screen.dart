@@ -96,7 +96,7 @@ class _AssignmentEditorScreenState
       }
 
       final question = await repo.addQuestion(
-        subjectPack: 'math',
+        subjectPack: _course?.subjectName ?? 'عام',
         prompt: _promptController.text.trim().isEmpty
             ? 'حل المسألة المرفقة'
             : _promptController.text.trim(),
@@ -183,11 +183,6 @@ class _AssignmentEditorScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '📐 رياضيات — المسارات التانية جاية لاحقًا',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 14),
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: 'عنوان الواجب'),
@@ -195,14 +190,24 @@ class _AssignmentEditorScreenState
             const SizedBox(height: 14),
             DropdownButtonFormField<Course?>(
               initialValue: _course,
-              decoration: const InputDecoration(labelText: 'الكورس (اختياري)'),
+              decoration: const InputDecoration(
+                labelText: 'المادة (اختار الكورس)',
+              ),
               items: [
                 const DropdownMenuItem(value: null, child: Text('بدون كورس')),
                 ...courses.map(
                   (c) => DropdownMenuItem(value: c, child: Text(c.subjectName)),
                 ),
               ],
-              onChanged: (v) => setState(() => _course = v),
+              onChanged: (v) => setState(() {
+                _course = v;
+                // Every course already has its own Drive materials link —
+                // reuse it as the whiteboard's subject reference instead of
+                // asking the owner to pick one again.
+                if (v?.materialsLink != null) {
+                  _driveLinkController.text = v!.materialsLink!;
+                }
+              }),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -227,9 +232,10 @@ class _AssignmentEditorScreenState
               controller: _driveLinkController,
               textDirection: TextDirection.ltr,
               decoration: InputDecoration(
-                labelText: 'رابط Drive لمرجع المادة (اختياري)',
+                labelText: 'رابط مرجع المادة (معبّى تلقائي من ملفات الكورس)',
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.folder_outlined),
+                  tooltip: 'اختار رابط تاني من Drive',
                   onPressed: _pickDriveLink,
                 ),
               ),

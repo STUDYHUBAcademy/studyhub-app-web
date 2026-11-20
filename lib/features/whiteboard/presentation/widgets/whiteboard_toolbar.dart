@@ -18,81 +18,120 @@ class WhiteboardToolbar extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        return Material(
-          color: AppColors.surface,
-          elevation: 2,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              children: [
-                _ToolButton(
-                  icon: Icons.edit_outlined,
-                  selected: controller.tool == WhiteboardTool.pen,
-                  onTap: () => controller.setTool(WhiteboardTool.pen),
-                  tooltip: 'قلم',
-                ),
-                _ToolButton(
-                  icon: Icons.auto_fix_normal_outlined,
-                  selected: controller.tool == WhiteboardTool.eraser,
-                  onTap: () => controller.setTool(WhiteboardTool.eraser),
-                  tooltip: 'ممحاة',
-                ),
-                _ToolButton(
-                  icon: Icons.pan_tool_outlined,
-                  selected: controller.tool == WhiteboardTool.pan,
-                  onTap: () => controller.setTool(WhiteboardTool.pan),
-                  tooltip: 'تحريك الصفحة',
-                ),
-                const SizedBox(width: 8),
-                for (final c in _colors)
-                  GestureDetector(
-                    onTap: () => controller.setPenColor(c),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: c,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: controller.penColor.toARGB32() == c.toARGB32()
-                              ? AppColors.accent
-                              : AppColors.border,
-                          width: controller.penColor.toARGB32() == c.toARGB32()
-                              ? 3
-                              : 1,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Material(
+            color: AppColors.surface,
+            elevation: 4,
+            shadowColor: Colors.black26,
+            borderRadius: BorderRadius.circular(28),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                children: [
+                  _ToolButton(
+                    icon: Icons.edit_outlined,
+                    selected: controller.tool == WhiteboardTool.pen,
+                    onTap: () => controller.setTool(WhiteboardTool.pen),
+                    tooltip: 'قلم',
+                  ),
+                  _ToolButton(
+                    icon: Icons.auto_fix_normal_outlined,
+                    selected: controller.tool == WhiteboardTool.eraser,
+                    onTap: () => controller.setTool(WhiteboardTool.eraser),
+                    tooltip: 'ممحاة',
+                  ),
+                  _ToolButton(
+                    icon: Icons.pan_tool_outlined,
+                    selected: controller.tool == WhiteboardTool.pan,
+                    onTap: () => controller.setTool(WhiteboardTool.pan),
+                    tooltip: 'تحريك الصفحة',
+                  ),
+                  _VerticalDivider(),
+                  for (final c in _colors)
+                    GestureDetector(
+                      onTap: () => controller.setPenColor(c),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                controller.penColor.toARGB32() == c.toARGB32()
+                                ? AppColors.accent
+                                : AppColors.border,
+                            width:
+                                controller.penColor.toARGB32() == c.toARGB32()
+                                ? 3
+                                : 1,
+                          ),
                         ),
                       ),
                     ),
+                  _VerticalDivider(),
+                  PopupMenuButton<PageStyle>(
+                    tooltip: 'شكل الصفحة',
+                    icon: const Icon(
+                      Icons.view_agenda_outlined,
+                      color: AppColors.textMuted,
+                    ),
+                    onSelected: controller.setPageStyle,
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: PageStyle.blank,
+                        child: Text('صفحة فارغة'),
+                      ),
+                      PopupMenuItem(
+                        value: PageStyle.ruled,
+                        child: Text('صفحة مسطرة'),
+                      ),
+                    ],
                   ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.zoom_out),
-                  onPressed: () => controller.zoomBy(0.9),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.zoom_in),
-                  onPressed: () => controller.zoomBy(1.1),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.undo),
-                  onPressed: controller.canUndo ? controller.undo : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.redo),
-                  onPressed: controller.canRedo ? controller.redo : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'مسح الكل',
-                  onPressed: controller.clear,
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.zoom_out),
+                    onPressed: () => controller.zoomBy(0.9),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.zoom_in),
+                    onPressed: () => controller.zoomBy(1.1),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.undo),
+                    onPressed: controller.canUndo ? controller.undo : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.redo),
+                    onPressed: controller.canRedo ? controller.redo : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'مسح الكل',
+                    onPressed: controller.clear,
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _VerticalDivider extends StatelessWidget {
+  const _VerticalDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 28,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      color: AppColors.border,
     );
   }
 }

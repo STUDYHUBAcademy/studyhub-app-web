@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../providers/whiteboard_providers.dart';
 import 'assignment_editor_screen.dart';
+import 'quick_canvas_screen.dart';
 import 'submissions_screen.dart';
 
 class AssignmentsScreen extends ConsumerWidget {
@@ -16,7 +17,20 @@ class AssignmentsScreen extends ConsumerWidget {
     final assignmentsAsync = ref.watch(wbAssignmentsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('🧑‍🏫 السبورة الذكية')),
+      appBar: AppBar(
+        title: const Text('🧑‍🏫 السبورة الذكية'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.draw_outlined),
+            tooltip: 'فتح سبورة فارغة',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const QuickCanvasScreen(),
+              ),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(

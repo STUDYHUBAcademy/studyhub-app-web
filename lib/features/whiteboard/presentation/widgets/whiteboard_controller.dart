@@ -4,6 +4,10 @@ import '../../domain/entities/stroke.dart';
 
 enum WhiteboardTool { pen, eraser, pan }
 
+/// A blank page, or one ruled with notebook lines — like Inkodo's
+/// note-taking pages — shown behind any uploaded source and the strokes.
+enum PageStyle { blank, ruled }
+
 /// Local, ephemeral drawing state for one board session — not a Riverpod
 /// provider, since nothing outside the canvas widget needs it and its
 /// lifetime is exactly the screen that owns it.
@@ -14,6 +18,7 @@ class WhiteboardController extends ChangeNotifier {
   WhiteboardTool tool = WhiteboardTool.pen;
   Color penColor = Colors.black;
   double penWidth = 3;
+  PageStyle pageStyle = PageStyle.blank;
 
   /// Pan/zoom applied to the whole page (background + strokes together).
   Offset panOffset = Offset.zero;
@@ -35,6 +40,11 @@ class WhiteboardController extends ChangeNotifier {
 
   void setPenColor(Color c) {
     penColor = c;
+    notifyListeners();
+  }
+
+  void setPageStyle(PageStyle s) {
+    pageStyle = s;
     notifyListeners();
   }
 

@@ -119,12 +119,19 @@ class WhiteboardRemoteDatasource {
     return Map<String, dynamic>.from(data);
   }
 
-  // Anon only has a column-level grant on id/subject_name — see schema.sql.
+  // Anon only has a column-level grant on id/subject_name (not `status`) —
+  // see schema.sql — so an anonymous caller can't filter on status directly;
+  // RLS already restricts them to active rows anyway. But this same method
+  // also runs under the OWNER's own authenticated session while testing
+  // /study from inside the app, where owners_full_access sees every course
+  // regardless of status — so filter explicitly in that case (the owner's
+  // session has full column access) to match what a real student sees.
   Future<List<Map<String, dynamic>>> fetchActiveCourses() async {
-    return await _client
-        .from('courses')
-        .select('id, subject_name')
-        .order('subject_name');
+    var query = _client.from('courses').select('id, subject_name');
+    if (_client.auth.currentSession != null) {
+      query = query.eq('status', 'active');
+    }
+    return await query.order('subject_name');
   }
 
   Future<Map<String, dynamic>> refreshCourseKnowledge({

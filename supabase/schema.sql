@@ -637,6 +637,61 @@ create table if not exists quiz_attempts (
 create index if not exists idx_quiz_attempts_quiz_id on quiz_attempts(quiz_id);
 
 -- ─────────────────────────────────────────────────────────────────────────
+-- Smart Homework Whiteboard (Phase 1 — core board + anonymous submission,
+-- same trust model as the quiz feature above: no student accounts exist
+-- yet, so a student is identified by name/phone typed in at submit time,
+-- not a login. No AI grading in this phase.
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists wb_questions (
+  id uuid primary key default gen_random_uuid(),
+  teacher_id uuid references profiles(id),
+  subject_pack text not null default 'math',
+  prompt text not null,
+  source_path text,
+  source_type text check (source_type in ('pdf','image')),
+  reference_drive_link text,
+  reference_video_link text,
+  model_answer text,
+  rubric jsonb not null default '[]',
+  accepted_variations text,
+  max_score numeric not null default 10,
+  checks jsonb not null default '[]',
+  language text not null default 'ar',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists wb_assignments (
+  id uuid primary key default gen_random_uuid(),
+  teacher_id uuid references profiles(id),
+  course_id uuid references courses(id) on delete set null,
+  title text not null,
+  question_ids uuid[] not null default '{}',
+  intervention_mode text not null default 'end'
+    check (intervention_mode in ('instant','smart','end')),
+  ai_grading_visibility text not null default 'teacher_review_first'
+    check (ai_grading_visibility in ('auto_release','teacher_review_first')),
+  is_published boolean not null default false,
+  due_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists wb_submissions (
+  id uuid primary key default gen_random_uuid(),
+  assignment_id uuid not null references wb_assignments(id) on delete cascade,
+  question_id uuid not null references wb_questions(id) on delete cascade,
+  -- nullable; populated once real student accounts exist (a later, separate
+  -- initiative) — not used by anything in this phase.
+  student_id uuid references students(id),
+  student_name text not null,
+  student_phone text,
+  status text not null default 'submitted' check (status in ('draft','submitted')),
+  strokes jsonb not null default '[]',
+  duration_ms integer,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_wb_submissions_assignment_id on wb_submissions(assignment_id);
+
+-- ─────────────────────────────────────────────────────────────────────────
 -- Row Level Security
 -- Every table: the 2 owners get full access. tutor_applications additionally
 -- allows anonymous INSERT only (the public tutor registration form).
@@ -649,7 +704,8 @@ declare
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
     'tutor_ledger','private_sessions','transactions','tasks','notes','academy_expenses','owner_withdrawals',
     'chat_channels','chat_messages','tutor_applications','activity_log',
-    'marketers','app_settings','quizzes','quiz_attempts'
+    'marketers','app_settings','quizzes','quiz_attempts',
+    'wb_questions','wb_assignments','wb_submissions'
   ];
 begin
   foreach t in array owner_tables loop
@@ -709,6 +765,35 @@ create policy public_can_submit_attempt on quiz_attempts
   with check (true);
 grant insert on quiz_attempts to anon, authenticated;
 
+-- Public whiteboard board (a /whiteboard/:id link): anyone can read a
+-- published assignment and the questions it references, and submit work,
+-- but — same guarantee as quizzes — can never read submissions back.
+drop policy if exists public_can_read_published_assignment on wb_assignments;
+create policy public_can_read_published_assignment on wb_assignments
+  for select
+  to public
+  using (is_published);
+grant select on wb_assignments to anon, authenticated;
+
+drop policy if exists public_can_read_assignment_questions on wb_questions;
+create policy public_can_read_assignment_questions on wb_questions
+  for select
+  to public
+  using (
+    exists (
+      select 1 from wb_assignments a
+      where a.is_published and wb_questions.id = any(a.question_ids)
+    )
+  );
+grant select on wb_questions to anon, authenticated;
+
+drop policy if exists public_can_submit_wb on wb_submissions;
+create policy public_can_submit_wb on wb_submissions
+  for insert
+  to public
+  with check (true);
+grant insert on wb_submissions to anon, authenticated;
+
 -- ─────────────────────────────────────────────────────────────────────────
 -- Storage buckets
 -- ─────────────────────────────────────────────────────────────────────────
@@ -716,14 +801,25 @@ insert into storage.buckets (id, name, public)
 values
   ('tutor-demos', 'tutor-demos', false),
   ('session-materials', 'session-materials', false),
-  ('chat-attachments', 'chat-attachments', false)
+  ('chat-attachments', 'chat-attachments', false),
+  ('wb-figures', 'wb-figures', true)
 on conflict (id) do nothing;
 
 drop policy if exists owners_storage_access on storage.objects;
 create policy owners_storage_access on storage.objects
   for all
-  using (bucket_id in ('tutor-demos','session-materials','chat-attachments') and is_owner())
-  with check (bucket_id in ('tutor-demos','session-materials','chat-attachments') and is_owner());
+  using (bucket_id in ('tutor-demos','session-materials','chat-attachments','wb-figures') and is_owner())
+  with check (bucket_id in ('tutor-demos','session-materials','chat-attachments','wb-figures') and is_owner());
+
+-- wb-figures also needs to be publicly readable (the question's PDF/image
+-- is shown to anonymous students on the board page) — a separate select-only
+-- policy, since the all-access one above is gated to owners only.
+drop policy if exists public_read_wb_figures on storage.objects;
+create policy public_read_wb_figures on storage.objects
+  for select
+  to public
+  using (bucket_id = 'wb-figures');
+grant select on storage.objects to anon, authenticated;
 
 -- Realtime: every table the app subscribes to via .stream() must be in this
 -- publication, or the subscription errors out client-side. Cover all
@@ -737,7 +833,8 @@ declare
     'courses','course_demos','course_terms','students','enrollments','enrollment_payments',
     'tutor_ledger','private_sessions','transactions','tasks','notes','academy_expenses','owner_withdrawals',
     'chat_channels','chat_messages','marketers','app_settings','activity_log',
-    'quizzes','quiz_attempts'
+    'quizzes','quiz_attempts',
+    'wb_questions','wb_assignments','wb_submissions'
   ];
 begin
   foreach t in array realtime_tables loop

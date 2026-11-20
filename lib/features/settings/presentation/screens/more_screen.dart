@@ -36,6 +36,11 @@ const _moreItems = [
     icon: Icons.quiz_rounded,
     route: '/quizzes',
   ),
+  MoreMenuItem(
+    title: '🧑‍🏫 السبورة الذكية',
+    icon: Icons.draw_outlined,
+    route: '/whiteboard-assignments',
+  ),
   MoreMenuItem(title: '💬 الشات', icon: Icons.forum_rounded, route: '/chat'),
   MoreMenuItem(
     title: '✅ المهام',

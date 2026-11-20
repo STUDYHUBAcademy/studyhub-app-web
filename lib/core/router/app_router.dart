@@ -18,6 +18,8 @@ import '../../features/tasks/presentation/screens/tasks_screen.dart';
 import '../../features/tutors/presentation/screens/tutor_detail_screen.dart';
 import '../../features/tutors/presentation/screens/tutors_screen.dart';
 import '../../features/universities/presentation/screens/universities_terms_screen.dart';
+import '../../features/whiteboard/presentation/screens/assignments_screen.dart';
+import '../../features/whiteboard/presentation/screens/board_screen.dart';
 import '../network/supabase_client.dart';
 import 'app_shell.dart';
 import 'go_router_refresh_stream.dart';
@@ -33,13 +35,21 @@ final appRouter = GoRouter(
   redirect: (context, state) {
     final signedIn = AppSupabase.client.auth.currentSession != null;
     final onLogin = state.matchedLocation == '/login';
+    // /whiteboard/:id is the public link a student opens with no account —
+    // same exception as /login, not gated behind owner sign-in at all.
+    final onPublicBoard = state.matchedLocation.startsWith('/whiteboard/');
 
-    if (!signedIn && !onLogin) return '/login';
+    if (!signedIn && !onLogin && !onPublicBoard) return '/login';
     if (signedIn && onLogin) return '/dashboard';
     return null;
   },
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/whiteboard/:id',
+      builder: (context, state) =>
+          BoardScreen(assignmentId: state.pathParameters['id']!),
+    ),
 
     // Top-level pages pushed from the "More" tab.
     GoRoute(
@@ -57,6 +67,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/quizzes',
       builder: (context, state) => const QuizzesScreen(),
+    ),
+    GoRoute(
+      path: '/whiteboard-assignments',
+      builder: (context, state) => const AssignmentsScreen(),
     ),
     GoRoute(path: '/chat', builder: (context, state) => const ChatListScreen()),
     GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),

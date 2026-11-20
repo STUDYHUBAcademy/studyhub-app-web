@@ -53,4 +53,11 @@ abstract class WhiteboardRepository {
     required List<Stroke> strokes,
     int? durationMs,
   });
+
+  /// Grades a submission with AI from an already-rasterized PNG of its
+  /// strokes (+ background), and persists the result on the submission row.
+  Future<WbGradingResult> gradeSubmission({
+    required String submissionId,
+    required Uint8List imageBytes,
+  });
 }

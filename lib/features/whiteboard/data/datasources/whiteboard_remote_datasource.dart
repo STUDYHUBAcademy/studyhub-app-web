@@ -71,4 +71,20 @@ class WhiteboardRemoteDatasource {
   Future<void> submitWork(Map<String, dynamic> data) async {
     await _client.from('wb_submissions').insert(data);
   }
+
+  Future<Map<String, dynamic>> gradeSubmission({
+    required String submissionId,
+    required String imageBase64,
+  }) async {
+    final response = await _client.functions.invoke(
+      'wb-grade',
+      body: {'submission_id': submissionId, 'image_base64': imageBase64},
+    );
+    final data = response.data;
+    if (response.status != 200 || data is! Map || data['feedback'] == null) {
+      final message = (data is Map ? data['error'] : null) ?? response.data;
+      throw Exception('فشل التصحيح بالذكاء الاصطناعي: $message');
+    }
+    return Map<String, dynamic>.from(data);
+  }
 }

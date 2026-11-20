@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -126,5 +127,17 @@ class WhiteboardRepositoryImpl implements WhiteboardRepository {
       'strokes': strokes.map((s) => s.toJson()).toList(),
       'duration_ms': durationMs,
     });
+  }
+
+  @override
+  Future<WbGradingResult> gradeSubmission({
+    required String submissionId,
+    required Uint8List imageBytes,
+  }) async {
+    final result = await _remote.gradeSubmission(
+      submissionId: submissionId,
+      imageBase64: base64Encode(imageBytes),
+    );
+    return WbGradingResult.fromJson(result);
   }
 }

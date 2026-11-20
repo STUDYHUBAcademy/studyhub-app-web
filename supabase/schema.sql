@@ -687,6 +687,12 @@ create table if not exists wb_submissions (
   status text not null default 'submitted' check (status in ('draft','submitted')),
   strokes jsonb not null default '[]',
   duration_ms integer,
+  -- AI grading (Phase 2) — populated on-demand when the owner taps
+  -- "صحّح بالذكاء الاصطناعي"; null until then.
+  ai_score numeric,
+  ai_max_score numeric,
+  ai_feedback text,
+  ai_graded_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index if not exists idx_wb_submissions_assignment_id on wb_submissions(assignment_id);

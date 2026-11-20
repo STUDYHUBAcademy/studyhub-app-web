@@ -93,6 +93,14 @@ class ApplicationCard extends StatelessWidget {
                 onTap: () => launchWebLink(application.demoLink!),
               ),
             ],
+            if (application.profileUrl != null) ...[
+              const SizedBox(height: 8),
+              _ContactAction(
+                icon: Icons.person_search_outlined,
+                label: 'الملف على خصوصي اونلاين',
+                onTap: () => launchWebLink(application.profileUrl!),
+              ),
+            ],
             const SizedBox(height: 10),
             SubjectChips(subjects: application.subjects),
             const SizedBox(height: 12),

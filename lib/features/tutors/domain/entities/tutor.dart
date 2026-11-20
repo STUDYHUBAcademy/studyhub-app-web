@@ -36,6 +36,12 @@ class Tutor {
     return [dept, cat].whereType<String>().join(' — ');
   }
 
+  /// Khososy Online profile link, carried over from an imported application.
+  String? get profileUrl {
+    final url = faculty?['profile_url'] as String?;
+    return (url == null || url.isEmpty) ? null : url;
+  }
+
   factory Tutor.fromJson(Map<String, dynamic> json) {
     return Tutor(
       id: json['id'] as String,

@@ -217,6 +217,16 @@ class _TutorDetailBody extends ConsumerWidget {
                         onPressed: () => shareLink(tutor.demoLink!),
                       ),
                     ),
+                  if (tutor.profileUrl != null)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.person_search_outlined,
+                        color: AppColors.accent,
+                      ),
+                      title: const Text('الملف على خصوصي اونلاين'),
+                      onTap: () => launchWebLink(tutor.profileUrl!),
+                    ),
                 ],
               ),
             ),

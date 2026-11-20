@@ -791,7 +791,17 @@ create policy public_can_read_assignment_questions on wb_questions
       where a.is_published and wb_questions.id = any(a.question_ids)
     )
   );
-grant select on wb_questions to anon, authenticated;
+-- Column-restricted for anon: a student's device must never receive
+-- model_answer/rubric/accepted_variations/checks (the spec's own privacy
+-- rule — "the student never receives the model answer"). Only the
+-- wb-live-check/wb-grade Edge Functions read those, via the service-role
+-- key server-side.
+revoke select on wb_questions from anon;
+grant select (
+  id, teacher_id, subject_pack, prompt, source_path, source_type,
+  reference_video_link, max_score, language, created_at
+) on wb_questions to anon;
+grant select on wb_questions to authenticated;
 
 drop policy if exists public_can_submit_wb on wb_submissions;
 create policy public_can_submit_wb on wb_submissions

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../domain/entities/live_check_result.dart';
 import '../../domain/entities/stroke.dart';
 import '../../domain/entities/wb_assignment.dart';
 import '../../domain/entities/wb_question.dart';
@@ -139,5 +140,17 @@ class WhiteboardRepositoryImpl implements WhiteboardRepository {
       imageBase64: base64Encode(imageBytes),
     );
     return WbGradingResult.fromJson(result);
+  }
+
+  @override
+  Future<LiveCheckResult> liveCheck({
+    required String questionId,
+    required Uint8List imageBytes,
+  }) async {
+    final result = await _remote.liveCheck(
+      questionId: questionId,
+      imageBase64: base64Encode(imageBytes),
+    );
+    return LiveCheckResult.fromJson(result);
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../entities/live_check_result.dart';
 import '../entities/stroke.dart';
 import '../entities/wb_assignment.dart';
 import '../entities/wb_question.dart';
@@ -58,6 +59,14 @@ abstract class WhiteboardRepository {
   /// strokes (+ background), and persists the result on the submission row.
   Future<WbGradingResult> gradeSubmission({
     required String submissionId,
+    required Uint8List imageBytes,
+  });
+
+  /// Live, in-progress check while a student is still writing — public/
+  /// anonymous-safe (no session required), unlike [gradeSubmission]. Not
+  /// persisted anywhere; purely for instant on-screen feedback.
+  Future<LiveCheckResult> liveCheck({
+    required String questionId,
     required Uint8List imageBytes,
   });
 }

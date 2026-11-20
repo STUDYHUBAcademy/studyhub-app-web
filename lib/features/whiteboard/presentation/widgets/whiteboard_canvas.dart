@@ -24,10 +24,22 @@ class WhiteboardCanvas extends StatefulWidget {
     super.key,
     required this.controller,
     this.background,
+    this.strokeColorOverrides = const {},
+    this.overlayChildren = const [],
   });
 
   final WhiteboardController controller;
   final Widget? background;
+
+  /// Maps a stroke id to a color it should render as instead of its own —
+  /// how the live AI-check flags a wrong line red/orange without mutating
+  /// the actual stroke data.
+  final Map<String, Color> strokeColorOverrides;
+
+  /// Extra widgets positioned in the same 1000x2400 logical page space as
+  /// the strokes (e.g. the live-check "!" markers) — added inside the same
+  /// `Transform` as the canvas so they pan/zoom together with it.
+  final List<Widget> overlayChildren;
 
   @override
   State<WhiteboardCanvas> createState() => _WhiteboardCanvasState();
@@ -99,9 +111,11 @@ class _WhiteboardCanvasState extends State<WhiteboardCanvas> {
                             liveColor: c.penColor,
                             liveWidth: c.penWidth,
                             pageStyle: c.pageStyle,
+                            strokeColorOverrides: widget.strokeColorOverrides,
                           ),
                         ),
                       ),
+                      ...widget.overlayChildren,
                     ],
                   ),
                 ),
@@ -121,6 +135,7 @@ class WhiteboardPainter extends CustomPainter {
     required this.liveColor,
     required this.liveWidth,
     this.pageStyle = PageStyle.blank,
+    this.strokeColorOverrides = const {},
   });
 
   final List<Stroke> strokes;
@@ -128,6 +143,7 @@ class WhiteboardPainter extends CustomPainter {
   final Color liveColor;
   final double liveWidth;
   final PageStyle pageStyle;
+  final Map<String, Color> strokeColorOverrides;
 
   static const _ruleSpacing = 48.0;
 
@@ -165,7 +181,7 @@ class WhiteboardPainter extends CustomPainter {
         canvas,
         s.points,
         Paint()
-          ..color = s.color
+          ..color = strokeColorOverrides[s.id] ?? s.color
           ..strokeWidth = s.width
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:intl/intl.dart' as intl;
 
+import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/access_control.dart';
 import '../../../../core/utils/acquisition_source.dart';
@@ -10,6 +12,7 @@ import '../../../../core/utils/contact_links.dart';
 import '../../../../core/utils/reauth.dart';
 import '../../../../core/widgets/phone_number_field.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
+import '../../../whiteboard/presentation/providers/whiteboard_providers.dart';
 import '../../../notes/domain/entities/note.dart';
 import '../../../notes/presentation/providers/notes_providers.dart';
 import '../../../quizzes/presentation/providers/quizzes_providers.dart';
@@ -202,6 +205,82 @@ class _CourseDetailBody extends ConsumerWidget {
     await ref
         .read(coursesRepositoryProvider)
         .updateCourseMaterialsLink(course.id, link);
+  }
+
+  /// Rebuilds the course's cached knowledge digest (course_knowledge) from
+  /// its Drive material — this is what grounds the public free-study
+  /// canvas's AI checking for this course (see wb-course-digest).
+  Future<void> _refreshCourseKnowledge(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    GoogleSignInAccount? driveAccount;
+    final selected = await Navigator.of(context).push<List<DriveItem>>(
+      MaterialPageRoute(
+        builder: (context) => DriveFolderPickerScreen(
+          multiSelect: true,
+          onAccountResolved: (account) => driveAccount = account,
+        ),
+      ),
+    );
+    if (selected == null || selected.isEmpty) return;
+    if (!context.mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Expanded(child: Text('بيحلل مواد الكورس…')),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final driveService = GoogleDriveService();
+      // Reuse the account the file picker already resolved — a *second*
+      // independent silent sign-in attempt can spuriously fail on web right
+      // after the interactive one that just succeeded.
+      final account = driveAccount ?? await driveService.attemptSilentSignIn();
+      if (account == null) {
+        throw Exception('محتاج تسجّل دخول بحساب جوجل الأول');
+      }
+      final token = await driveService.accessTokenFor(account);
+      final summary = await ref
+          .read(whiteboardRepositoryProvider)
+          .refreshCourseKnowledge(
+            courseId: course.id,
+            files: selected
+                .map((f) => {'id': f.id, 'mime_type': f.mimeType, 'name': f.name})
+                .toList(),
+            driveAccessToken: token,
+          );
+      if (!context.mounted) return;
+      Navigator.pop(context); // close the loading dialog
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('✅ قاعدة المعرفة اتحدثت'),
+          content: SingleChildScrollView(child: Text(summary)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('تمام'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // close the loading dialog
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('حصل خطأ: $e')));
+    }
   }
 
   Future<void> _editCourseDetails(BuildContext context, WidgetRef ref) async {
@@ -497,6 +576,22 @@ class _CourseDetailBody extends ConsumerWidget {
                       course.materialsLink!.isNotEmpty)
                   ? () => launchWebLink(course.materialsLink!)
                   : () => _editMaterialsLink(context, ref),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(
+                Icons.psychology_outlined,
+                color: AppColors.accent,
+              ),
+              title: const Text('قاعدة معرفة الذكاء الاصطناعي'),
+              subtitle: const Text(
+                'بتحلل مواد الدرايف عشان تصحيح أقوى في المذاكرة الحرة',
+                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+              ),
+              trailing: const Icon(Icons.chevron_left_rounded),
+              onTap: () => _refreshCourseKnowledge(context, ref),
             ),
           ),
           const SizedBox(height: 10),

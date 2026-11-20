@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../entities/live_check_result.dart';
 import '../entities/stroke.dart';
+import '../entities/study_course_option.dart';
 import '../entities/wb_assignment.dart';
 import '../entities/wb_question.dart';
 import '../entities/wb_submission.dart';
@@ -64,9 +65,27 @@ abstract class WhiteboardRepository {
 
   /// Live, in-progress check while a student is still writing — public/
   /// anonymous-safe (no session required), unlike [gradeSubmission]. Not
-  /// persisted anywhere; purely for instant on-screen feedback.
+  /// persisted anywhere; purely for instant on-screen feedback. Exactly one
+  /// of [questionId] (a formal assignment question) or [courseId] (free-
+  /// study practice, grounded in that course's knowledge digest instead)
+  /// must be given.
   Future<LiveCheckResult> liveCheck({
-    required String questionId,
+    String? questionId,
+    String? courseId,
     required Uint8List imageBytes,
+  });
+
+  // Free-study mode (/study) --------------------------------------------------
+  /// The academy's currently-active courses, by name only — public/
+  /// anonymous-safe, for the free-study course picker.
+  Future<List<StudyCourseOption>> fetchActiveCourses();
+
+  /// Owner-only: rebuilds a course's cached knowledge digest from its Drive
+  /// material, used to ground every future free-study check for that
+  /// course. Returns the digest text so the owner can review it.
+  Future<String> refreshCourseKnowledge({
+    required String courseId,
+    required List<Map<String, String?>> files,
+    required String driveAccessToken,
   });
 }

@@ -1,14 +1,18 @@
 // Supabase Edge Function: wb-live-check
 //
 // Checks a student's in-progress handwritten work WHILE they're still
-// writing it — called from the public, unauthenticated /whiteboard/:id
-// board (no login exists for students at all), so unlike wb-grade this
+// writing it — called from either the public, unauthenticated
+// /whiteboard/:id assignment board, or the public /study free-practice
+// canvas (no login exists for students at all), so unlike wb-grade this
 // function takes NO Authorization header and must do its own privileged
 // read using the service-role key (never exposed to the client) rather
-// than a forwarded session. It only returns which numbered LINE BADGES
-// (rendered into the image client-side — see whiteboard_rasterizer.dart)
-// look wrong, plus a short note per line; it never returns or leaks the
-// question's model answer/rubric itself.
+// than a forwarded session. Pass question_id for a formal assignment
+// question, or course_id for free-study practice (grounded in that
+// course's course_knowledge digest instead of a specific rubric). It only
+// returns which numbered LINE BADGES (rendered into the image client-side
+// — see whiteboard_rasterizer.dart) look wrong, plus a short note per
+// line; it never returns or leaks the question's model answer/rubric, or
+// the full course knowledge digest, itself.
 //
 // Deploy: paste this file's contents into
 //   Supabase Dashboard -> Edge Functions -> wb-live-check -> Code
@@ -68,29 +72,54 @@ function redactAnswer(text: string, modelAnswer: string | null): string {
   return text.split(needle).join("***");
 }
 
+interface CheckContext {
+  subject: string;
+  language: string;
+  /** Set for a formal assignment question; unset for free-study practice. */
+  question?: string;
+  modelAnswer?: string | null;
+  rubric?: unknown;
+  acceptedVariations?: string | null;
+  /** Set for free-study practice: the course's cached Drive-material digest. */
+  knowledgeSummary?: string | null;
+}
+
 async function liveCheckWithGemini(
-  question: Record<string, unknown>,
+  context: CheckContext,
   imageBase64: string,
   geminiApiKey: string,
 ) {
-  const language = (question.language as string) === "en" ? "en" : "ar";
+  const language = context.language === "en" ? "en" : "ar";
   const languageNote = language === "en"
     ? "Write notes/message in English."
     : "اكتب الملاحظات بالعربية المصرية البسيطة.";
 
-  const contextParts: string[] = [
-    `Subject: ${question.subject_pack ?? "عام"}`,
-    `Question: ${question.prompt}`,
-  ];
-  if (question.model_answer) {
-    contextParts.push(`Model/expected answer: ${question.model_answer}`);
-  }
-  if (Array.isArray(question.rubric) && question.rubric.length > 0) {
-    contextParts.push(`Rubric: ${JSON.stringify(question.rubric)}`);
-  }
-  if (question.accepted_variations) {
+  const contextParts: string[] = [`Subject: ${context.subject}`];
+  if (context.question) {
+    contextParts.push(`Question: ${context.question}`);
+  } else {
     contextParts.push(
-      `Accepted variations in the answer: ${question.accepted_variations}`,
+      `This is free self-study practice, not a specific assigned question — the student is solving a problem ` +
+        `of their own (shown in the image, possibly as an uploaded screenshot with the student's handwritten ` +
+        `solution below/around it). Judge general correctness for this subject using your own knowledge plus the ` +
+        `course reference notes below.`,
+    );
+  }
+  if (context.modelAnswer) {
+    contextParts.push(`Model/expected answer: ${context.modelAnswer}`);
+  }
+  if (Array.isArray(context.rubric) && context.rubric.length > 0) {
+    contextParts.push(`Rubric: ${JSON.stringify(context.rubric)}`);
+  }
+  if (context.acceptedVariations) {
+    contextParts.push(
+      `Accepted variations in the answer: ${context.acceptedVariations}`,
+    );
+  }
+  if (context.knowledgeSummary) {
+    contextParts.push(
+      `Course reference notes (conventions/formulas/method this course uses — use these to judge correctness, ` +
+        `but they are not a question-specific answer key):\n${context.knowledgeSummary}`,
     );
   }
 
@@ -163,7 +192,7 @@ async function liveCheckWithGemini(
     throw new Error("Gemini رجّع JSON مش مكتوب صح");
   }
 
-  const modelAnswer = (question.model_answer as string | null) ?? null;
+  const modelAnswer = context.modelAnswer ?? null;
   const wrong = (result.wrong ?? []).map((w) => ({
     line: w.line,
     severity: w.severity === "critical" ? "critical" : "minor",
@@ -190,49 +219,88 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { question_id, image_base64 } = await req.json();
-    if (!question_id || !image_base64) {
+    const { question_id, course_id, image_base64 } = await req.json();
+    if ((!question_id && !course_id) || !image_base64) {
       return jsonResponse(
-        { error: "بيانات ناقصة (question_id/image_base64)" },
+        { error: "بيانات ناقصة (question_id أو course_id / image_base64)" },
         400,
       );
     }
 
     // Service-role client — this call has no user session at all (public
-    // board, no student login), so this is the only way to read the full
-    // question row (model_answer/rubric) that anon's column-level grant
-    // deliberately excludes. Never forwarded to the client.
+    // board/study mode, no student login), so this is the only way to read
+    // the privileged rows (model_answer/rubric, or the course's knowledge
+    // digest) that anon's column-level grants deliberately exclude. Never
+    // forwarded to the client.
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
-    // Only serve a question that actually belongs to a currently-published
-    // assignment — same gate the public RLS policy enforces, re-implemented
-    // here by hand since the service-role key bypasses RLS entirely.
-    const { data: published } = await supabase
-      .from("wb_assignments")
-      .select("id")
-      .eq("is_published", true)
-      .contains("question_ids", [question_id])
-      .limit(1)
-      .maybeSingle();
-    if (!published) {
-      return jsonResponse({ error: "السؤال غير متاح" }, 404);
-    }
+    let context: CheckContext;
 
-    const { data: question, error: qError } = await supabase
-      .from("wb_questions")
-      .select("*")
-      .eq("id", question_id)
-      .single();
-    if (qError || !question) {
-      return jsonResponse({ error: "السؤال غير موجود" }, 404);
+    if (question_id) {
+      // Only serve a question that actually belongs to a currently-
+      // published assignment — same gate the public RLS policy enforces,
+      // re-implemented here by hand since the service-role key bypasses
+      // RLS entirely.
+      const { data: published } = await supabase
+        .from("wb_assignments")
+        .select("id")
+        .eq("is_published", true)
+        .contains("question_ids", [question_id])
+        .limit(1)
+        .maybeSingle();
+      if (!published) {
+        return jsonResponse({ error: "السؤال غير متاح" }, 404);
+      }
+
+      const { data: question, error: qError } = await supabase
+        .from("wb_questions")
+        .select("*")
+        .eq("id", question_id)
+        .single();
+      if (qError || !question) {
+        return jsonResponse({ error: "السؤال غير موجود" }, 404);
+      }
+
+      context = {
+        subject: question.subject_pack ?? "عام",
+        language: question.language ?? "ar",
+        question: question.prompt,
+        modelAnswer: question.model_answer,
+        rubric: question.rubric,
+        acceptedVariations: question.accepted_variations,
+      };
+    } else {
+      // Free-study mode: only serve a course that's actually active —
+      // same gate the public RLS policy enforces.
+      const { data: course, error: courseError } = await supabase
+        .from("courses")
+        .select("id, subject_name, status")
+        .eq("id", course_id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (courseError || !course) {
+        return jsonResponse({ error: "الكورس غير متاح" }, 404);
+      }
+
+      const { data: knowledge } = await supabase
+        .from("course_knowledge")
+        .select("summary")
+        .eq("course_id", course_id)
+        .maybeSingle();
+
+      context = {
+        subject: course.subject_name,
+        language: "ar",
+        knowledgeSummary: knowledge?.summary ?? null,
+      };
     }
 
     const result = await liveCheckWithGemini(
-      question,
+      context,
       image_base64,
       geminiApiKey,
     );

@@ -99,17 +99,51 @@ class WhiteboardRemoteDatasource {
   }
 
   Future<Map<String, dynamic>> liveCheck({
-    required String questionId,
+    String? questionId,
+    String? courseId,
     required String imageBase64,
   }) async {
     final response = await _client.functions.invoke(
       'wb-live-check',
-      body: {'question_id': questionId, 'image_base64': imageBase64},
+      body: {
+        if (questionId != null) 'question_id': questionId,
+        if (courseId != null) 'course_id': courseId,
+        'image_base64': imageBase64,
+      },
     );
     final data = response.data;
     if (response.status != 200 || data is! Map || data['state'] == null) {
       final message = (data is Map ? data['error'] : null) ?? response.data;
       throw Exception('فشل التصحيح الفوري: $message');
+    }
+    return Map<String, dynamic>.from(data);
+  }
+
+  // Anon only has a column-level grant on id/subject_name — see schema.sql.
+  Future<List<Map<String, dynamic>>> fetchActiveCourses() async {
+    return await _client
+        .from('courses')
+        .select('id, subject_name')
+        .order('subject_name');
+  }
+
+  Future<Map<String, dynamic>> refreshCourseKnowledge({
+    required String courseId,
+    required List<Map<String, String?>> files,
+    required String driveAccessToken,
+  }) async {
+    final response = await _client.functions.invoke(
+      'wb-course-digest',
+      body: {
+        'course_id': courseId,
+        'files': files,
+        'drive_access_token': driveAccessToken,
+      },
+    );
+    final data = response.data;
+    if (response.status != 200 || data is! Map || data['summary'] == null) {
+      final message = (data is Map ? data['error'] : null) ?? response.data;
+      throw Exception('فشل تحديث قاعدة المعرفة: $message');
     }
     return Map<String, dynamic>.from(data);
   }

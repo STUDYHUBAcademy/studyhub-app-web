@@ -19,15 +19,15 @@ class WhiteboardToolbar extends StatelessWidget {
       animation: controller,
       builder: (context, _) {
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           child: Material(
             color: AppColors.surface,
             elevation: 4,
             shadowColor: Colors.black26,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(22),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: Row(
                 children: [
                   _ToolButton(
@@ -53,9 +53,9 @@ class WhiteboardToolbar extends StatelessWidget {
                     GestureDetector(
                       onTap: () => controller.setPenColor(c),
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: 26,
-                        height: 26,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: 20,
+                        height: 20,
                         decoration: BoxDecoration(
                           color: c,
                           shape: BoxShape.circle,
@@ -73,42 +73,46 @@ class WhiteboardToolbar extends StatelessWidget {
                       ),
                     ),
                   _VerticalDivider(),
-                  PopupMenuButton<PageStyle>(
-                    tooltip: 'شكل الصفحة',
-                    icon: const Icon(
-                      Icons.view_agenda_outlined,
-                      color: AppColors.textMuted,
+                  _CompactIconButton(
+                    child: PopupMenuButton<PageStyle>(
+                      tooltip: 'شكل الصفحة',
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.view_agenda_outlined,
+                        color: AppColors.textMuted,
+                        size: 20,
+                      ),
+                      onSelected: controller.setPageStyle,
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: PageStyle.blank,
+                          child: Text('صفحة فارغة'),
+                        ),
+                        PopupMenuItem(
+                          value: PageStyle.ruled,
+                          child: Text('صفحة مسطرة'),
+                        ),
+                      ],
                     ),
-                    onSelected: controller.setPageStyle,
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: PageStyle.blank,
-                        child: Text('صفحة فارغة'),
-                      ),
-                      PopupMenuItem(
-                        value: PageStyle.ruled,
-                        child: Text('صفحة مسطرة'),
-                      ),
-                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.zoom_out),
+                  _CompactIconButton(
+                    icon: Icons.zoom_out,
                     onPressed: () => controller.zoomBy(0.9),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.zoom_in),
+                  _CompactIconButton(
+                    icon: Icons.zoom_in,
                     onPressed: () => controller.zoomBy(1.1),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.undo),
+                  _CompactIconButton(
+                    icon: Icons.undo,
                     onPressed: controller.canUndo ? controller.undo : null,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.redo),
+                  _CompactIconButton(
+                    icon: Icons.redo,
                     onPressed: controller.canRedo ? controller.redo : null,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
+                  _CompactIconButton(
+                    icon: Icons.delete_outline,
                     tooltip: 'مسح الكل',
                     onPressed: controller.clear,
                   ),
@@ -129,8 +133,8 @@ class _VerticalDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 1,
-      height: 28,
-      margin: const EdgeInsets.symmetric(horizontal: 6),
+      height: 20,
+      margin: const EdgeInsets.symmetric(horizontal: 5),
       color: AppColors.border,
     );
   }
@@ -151,16 +155,51 @@ class _ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
+    return _CompactIconButton(
+      icon: icon,
       tooltip: tooltip,
       onPressed: onTap,
-      icon: Icon(
-        icon,
-        color: selected ? AppColors.accent : AppColors.textMuted,
-      ),
-      style: IconButton.styleFrom(
-        backgroundColor: selected ? AppColors.accentSoft : null,
-      ),
+      color: selected ? AppColors.accent : AppColors.textMuted,
+      background: selected ? AppColors.accentSoft : null,
     );
+  }
+}
+
+/// A smaller-than-default [IconButton] (Material's own has a 48px minimum
+/// tap target) — used throughout so the toolbar stays a slim strip and
+/// leaves most of the screen to the canvas itself. Pass [child] instead of
+/// [icon] to wrap a non-IconButton control (e.g. a [PopupMenuButton]) at
+/// the same compact size.
+class _CompactIconButton extends StatelessWidget {
+  const _CompactIconButton({
+    this.icon,
+    this.onPressed,
+    this.tooltip,
+    this.color,
+    this.background,
+    this.child,
+  });
+
+  final IconData? icon;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+  final Color? color;
+  final Color? background;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    final content =
+        child ??
+        IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.all(6),
+          constraints: const BoxConstraints(),
+          icon: Icon(icon, size: 20, color: color),
+          style: IconButton.styleFrom(backgroundColor: background),
+        );
+    return SizedBox(height: 32, child: Center(child: content));
   }
 }

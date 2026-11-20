@@ -697,6 +697,19 @@ create table if not exists wb_submissions (
 );
 create index if not exists idx_wb_submissions_assignment_id on wb_submissions(assignment_id);
 
+-- Free-study mode: any student can open a public canvas, pick one of the
+-- academy's courses, and get live AI-checked practice — no assignment, no
+-- teacher-authored question. The AI's grounding is this cached digest of
+-- the course's own Drive material (built once by the owner, refreshed on
+-- demand), not a live Drive read — a public/anonymous caller has no Google
+-- OAuth of their own to read Drive with, only the owner does.
+create table if not exists course_knowledge (
+  course_id uuid primary key references courses(id) on delete cascade,
+  summary text not null,
+  file_names text[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
 -- ─────────────────────────────────────────────────────────────────────────
 -- Row Level Security
 -- Every table: the 2 owners get full access. tutor_applications additionally
@@ -711,7 +724,7 @@ declare
     'tutor_ledger','private_sessions','transactions','tasks','notes','academy_expenses','owner_withdrawals',
     'chat_channels','chat_messages','tutor_applications','activity_log',
     'marketers','app_settings','quizzes','quiz_attempts',
-    'wb_questions','wb_assignments','wb_submissions'
+    'wb_questions','wb_assignments','wb_submissions','course_knowledge'
   ];
 begin
   foreach t in array owner_tables loop
@@ -809,6 +822,16 @@ create policy public_can_submit_wb on wb_submissions
   to public
   with check (true);
 grant insert on wb_submissions to anon, authenticated;
+
+-- Public free-study mode (/study): a course picker needs the course list,
+-- but nothing beyond subject names — never pricing, tutor assignment, or
+-- any other course-detail column.
+drop policy if exists public_can_read_active_courses on courses;
+create policy public_can_read_active_courses on courses
+  for select
+  to public
+  using (status = 'active');
+grant select (id, subject_name) on courses to anon;
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Storage buckets

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/live_check_result.dart';
 import '../../domain/entities/stroke.dart';
+import '../../domain/entities/study_course_option.dart';
 import '../../domain/entities/wb_assignment.dart';
 import '../../domain/entities/wb_question.dart';
 import '../../domain/entities/wb_submission.dart';
@@ -144,13 +145,35 @@ class WhiteboardRepositoryImpl implements WhiteboardRepository {
 
   @override
   Future<LiveCheckResult> liveCheck({
-    required String questionId,
+    String? questionId,
+    String? courseId,
     required Uint8List imageBytes,
   }) async {
     final result = await _remote.liveCheck(
       questionId: questionId,
+      courseId: courseId,
       imageBase64: base64Encode(imageBytes),
     );
     return LiveCheckResult.fromJson(result);
+  }
+
+  @override
+  Future<List<StudyCourseOption>> fetchActiveCourses() async {
+    final rows = await _remote.fetchActiveCourses();
+    return rows.map(StudyCourseOption.fromJson).toList();
+  }
+
+  @override
+  Future<String> refreshCourseKnowledge({
+    required String courseId,
+    required List<Map<String, String?>> files,
+    required String driveAccessToken,
+  }) async {
+    final result = await _remote.refreshCourseKnowledge(
+      courseId: courseId,
+      files: files,
+      driveAccessToken: driveAccessToken,
+    );
+    return result['summary'] as String;
   }
 }

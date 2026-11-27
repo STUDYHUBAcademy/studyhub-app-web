@@ -161,20 +161,39 @@ class _StudyModeScreenState extends ConsumerState<StudyModeScreen> {
       ),
       body: Column(
         children: [
-          if (_liveCheck.enabled)
-            LiveCheckMessageBanner(message: _liveCheck.displayMessage),
           WhiteboardToolbar(controller: _controller),
           Expanded(
-            child: WhiteboardCanvas(
-              controller: _controller,
-              strokeColorOverrides: _liveCheck.strokeColors,
-              background: _backgroundBytes == null
-                  ? null
-                  : WhiteboardBackground(
-                      bytes: _backgroundBytes!,
-                      sourceType: _backgroundType,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: WhiteboardCanvas(
+                    controller: _controller,
+                    strokeColorOverrides: _liveCheck.strokeColors,
+                    background: _backgroundBytes == null
+                        ? null
+                        : WhiteboardBackground(
+                            bytes: _backgroundBytes!,
+                            sourceType: _backgroundType,
+                          ),
+                    overlayChildren: buildLiveCheckMarkers(context, _liveCheck),
+                  ),
+                ),
+                // Floats over the canvas rather than sitting in the Column
+                // above it — a sibling banner that appears/disappears would
+                // resize the canvas's own viewport each time, which shifts
+                // what's visible and makes just-written strokes look like
+                // they vanished (they're only scrolled out of the smaller
+                // view, never actually deleted).
+                if (_liveCheck.enabled)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: LiveCheckMessageBanner(
+                      message: _liveCheck.displayMessage,
                     ),
-              overlayChildren: buildLiveCheckMarkers(context, _liveCheck),
+                  ),
+              ],
             ),
           ),
         ],

@@ -201,20 +201,41 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     ],
                   ),
                 ),
-                if (_liveCheck.enabled)
-                  LiveCheckMessageBanner(message: _liveCheck.displayMessage),
                 WhiteboardToolbar(controller: _controller),
                 Expanded(
-                  child: WhiteboardCanvas(
-                    controller: _controller,
-                    strokeColorOverrides: _liveCheck.strokeColors,
-                    background: data.sourceBytes == null
-                        ? null
-                        : WhiteboardBackground(
-                            bytes: data.sourceBytes!,
-                            sourceType: data.question.sourceType ?? 'image',
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: WhiteboardCanvas(
+                          controller: _controller,
+                          strokeColorOverrides: _liveCheck.strokeColors,
+                          background: data.sourceBytes == null
+                              ? null
+                              : WhiteboardBackground(
+                                  bytes: data.sourceBytes!,
+                                  sourceType:
+                                      data.question.sourceType ?? 'image',
+                                ),
+                          overlayChildren: buildLiveCheckMarkers(
+                            context,
+                            _liveCheck,
                           ),
-                    overlayChildren: buildLiveCheckMarkers(context, _liveCheck),
+                        ),
+                      ),
+                      // Floats over the canvas instead of being a Column
+                      // sibling that would resize the viewport whenever it
+                      // appears/disappears — see study_mode_screen.dart for
+                      // the full explanation.
+                      if (_liveCheck.enabled)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: LiveCheckMessageBanner(
+                            message: _liveCheck.displayMessage,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],

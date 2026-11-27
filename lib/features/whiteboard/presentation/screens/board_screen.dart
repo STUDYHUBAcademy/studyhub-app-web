@@ -202,7 +202,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   ),
                 ),
                 if (_liveCheck.enabled)
-                  LiveCheckMessageBanner(message: _liveCheck.message),
+                  LiveCheckMessageBanner(message: _liveCheck.displayMessage),
                 WhiteboardToolbar(controller: _controller),
                 Expanded(
                   child: WhiteboardCanvas(

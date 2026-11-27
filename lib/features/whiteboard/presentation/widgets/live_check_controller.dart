@@ -33,6 +33,20 @@ class LiveCheckController extends ChangeNotifier {
   Map<int, LiveCheckFlag> flagsByLine = {};
   String? message;
 
+  /// Set when a check throws, cleared on the next successful one — surfaced
+  /// in the UI (instead of silently swallowed) so a real failure is visible
+  /// rather than looking identical to "nothing wrong to flag yet".
+  String? lastError;
+  bool checking = false;
+
+  /// What the banner should actually show: an in-flight indicator takes
+  /// priority, then a real error, then the AI's own message.
+  String? get displayMessage {
+    if (checking) return '🔎 بيراجع...';
+    if (lastError != null) return '⚠️ $lastError';
+    return message;
+  }
+
   void setEnabled(bool on) {
     enabled = on;
     if (!on) {
@@ -64,14 +78,18 @@ class LiveCheckController extends ChangeNotifier {
     final strokes = List<Stroke>.of(_pendingStrokes);
     if (strokes.isEmpty) return;
     _checking = true;
+    checking = true;
+    notifyListeners();
     try {
       final (lines, result) = await check(strokes);
+      lastError = null;
       _applyResult(lines, result);
-    } catch (_) {
-      // Silent — a failed check just means no feedback this round; the
-      // next debounce cycle (or stroke) tries again.
+    } catch (e) {
+      lastError = e.toString();
     } finally {
       _checking = false;
+      checking = false;
+      notifyListeners();
       if (_pendingRecheck) {
         _pendingRecheck = false;
         unawaited(_run());

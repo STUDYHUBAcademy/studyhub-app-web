@@ -47,6 +47,11 @@ class _StudyModeScreenState extends ConsumerState<StudyModeScreen> {
     _liveCheck = LiveCheckController(check: _performLiveCheck)
       ..setEnabled(true);
     _controller.addListener(_onBoardChanged);
+    // Full-State rebuild (not a narrowly-scoped AnimatedBuilder) — the
+    // toggle button lives in the AppBar, so anything scoped to just the
+    // body would freeze the button's `enabled` prop at its first value and
+    // never update it again, making every tap re-apply that stale value.
+    _liveCheck.addListener(() => setState(() {}));
   }
 
   @override
@@ -154,30 +159,25 @@ class _StudyModeScreenState extends ConsumerState<StudyModeScreen> {
           ),
         ],
       ),
-      body: AnimatedBuilder(
-        animation: _liveCheck,
-        builder: (context, _) {
-          return Column(
-            children: [
-              if (_liveCheck.enabled)
-                LiveCheckMessageBanner(message: _liveCheck.message),
-              WhiteboardToolbar(controller: _controller),
-              Expanded(
-                child: WhiteboardCanvas(
-                  controller: _controller,
-                  strokeColorOverrides: _liveCheck.strokeColors,
-                  background: _backgroundBytes == null
-                      ? null
-                      : WhiteboardBackground(
-                          bytes: _backgroundBytes!,
-                          sourceType: _backgroundType,
-                        ),
-                  overlayChildren: buildLiveCheckMarkers(context, _liveCheck),
-                ),
-              ),
-            ],
-          );
-        },
+      body: Column(
+        children: [
+          if (_liveCheck.enabled)
+            LiveCheckMessageBanner(message: _liveCheck.message),
+          WhiteboardToolbar(controller: _controller),
+          Expanded(
+            child: WhiteboardCanvas(
+              controller: _controller,
+              strokeColorOverrides: _liveCheck.strokeColors,
+              background: _backgroundBytes == null
+                  ? null
+                  : WhiteboardBackground(
+                      bytes: _backgroundBytes!,
+                      sourceType: _backgroundType,
+                    ),
+              overlayChildren: buildLiveCheckMarkers(context, _liveCheck),
+            ),
+          ),
+        ],
       ),
     );
   }

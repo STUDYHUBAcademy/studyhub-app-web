@@ -37,11 +37,16 @@ class WhiteboardToolbar extends StatelessWidget {
             elevation: 4,
             shadowColor: Colors.black26,
             borderRadius: BorderRadius.circular(22),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              child: Row(
-                children: [
+            child: Scrollbar(
+              thumbVisibility: true,
+              trackVisibility: true,
+              thickness: 3,
+              radius: const Radius.circular(2),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+                child: Row(
+                  children: [
                   _ToolButton(
                     icon: Icons.edit_outlined,
                     selected: controller.tool == WhiteboardTool.pen,
@@ -135,6 +140,7 @@ class WhiteboardToolbar extends StatelessWidget {
                     onPressed: _openCircuitSimulator,
                   ),
                 ],
+                ),
               ),
             ),
           ),

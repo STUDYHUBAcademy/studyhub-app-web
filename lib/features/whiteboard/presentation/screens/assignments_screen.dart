@@ -8,7 +8,7 @@ import '../../../../core/utils/contact_links.dart';
 import '../../../../core/widgets/realtime_error_view.dart';
 import '../providers/whiteboard_providers.dart';
 import 'assignment_editor_screen.dart';
-import 'quick_canvas_screen.dart';
+import 'study_mode_screen.dart';
 import 'submissions_screen.dart';
 
 const _studyModeLink = 'https://studyhubacademy.github.io/studyhub-app-web/#/study';
@@ -65,16 +65,16 @@ class AssignmentsScreen extends ConsumerWidget {
         title: const Text('🧑‍🏫 السبورة الذكية'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.psychology_outlined),
+            icon: const Icon(Icons.ios_share_outlined),
             tooltip: 'مشاركة لينك المذاكرة الحرة',
             onPressed: () => _shareStudyModeLink(context),
           ),
           IconButton(
             icon: const Icon(Icons.draw_outlined),
-            tooltip: 'فتح سبورة فارغة',
+            tooltip: 'فتح السبورة',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => const QuickCanvasScreen(),
+                builder: (context) => const StudyModeScreen(),
               ),
             ),
           ),

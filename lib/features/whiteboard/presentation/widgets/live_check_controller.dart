@@ -23,10 +23,14 @@ class LiveCheckController extends ChangeNotifier {
 
   bool enabled = false;
   Timer? _debounce;
+  Timer? _retryTimer;
   bool _checking = false;
   bool _pendingRecheck = false;
   int _lastSeenStrokeCount = 0;
   List<Stroke> _pendingStrokes = const [];
+  int _retryCount = 0;
+  static const _maxRetries = 2;
+  static const _retryDelay = Duration(seconds: 3);
 
   List<StrokeLine> lines = [];
   Map<String, Color> strokeColors = {};
@@ -51,6 +55,8 @@ class LiveCheckController extends ChangeNotifier {
     enabled = on;
     if (!on) {
       _debounce?.cancel();
+      _retryTimer?.cancel();
+      _retryCount = 0;
       strokeColors = {};
       flagsByLine = {};
       message = null;
@@ -66,6 +72,9 @@ class LiveCheckController extends ChangeNotifier {
     if (strokes.length == _lastSeenStrokeCount) return;
     _lastSeenStrokeCount = strokes.length;
     _pendingStrokes = strokes;
+    // A genuinely new check cycle, not a retry of a stale failure.
+    _retryTimer?.cancel();
+    _retryCount = 0;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 1200), _run);
   }
@@ -83,9 +92,22 @@ class LiveCheckController extends ChangeNotifier {
     try {
       final (lines, result) = await check(strokes);
       lastError = null;
+      _retryCount = 0;
       _applyResult(lines, result);
     } catch (e) {
       lastError = e.toString();
+      // A transient network/server blip shouldn't force the student to
+      // write something new just to get it to try again — retry a couple
+      // of times on its own first.
+      if (enabled && _retryCount < _maxRetries) {
+        _retryCount++;
+        _retryTimer?.cancel();
+        _retryTimer = Timer(_retryDelay, () {
+          if (enabled) unawaited(_run());
+        });
+      } else {
+        _retryCount = 0;
+      }
     } finally {
       _checking = false;
       checking = false;
@@ -121,6 +143,7 @@ class LiveCheckController extends ChangeNotifier {
   @override
   void dispose() {
     _debounce?.cancel();
+    _retryTimer?.cancel();
     super.dispose();
   }
 }

@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import 'whiteboard_controller.dart';
+
+const _circuitSimulatorUrl = 'https://www.falstad.com/circuit/circuitjs.html';
+
+/// Opens in a NEW tab/external app (not `_self` like the app's other outbound
+/// links) so the student doesn't lose their in-progress canvas by navigating
+/// the same tab away from it.
+Future<void> _openCircuitSimulator() => launchUrl(
+  Uri.parse(_circuitSimulatorUrl),
+  mode: LaunchMode.externalApplication,
+  webOnlyWindowName: '_blank',
+);
 
 /// Pen / eraser / pan tool switch, undo/redo/clear and zoom controls — a
 /// dedicated pan tool (rather than relying on pinch gestures) is what keeps
@@ -115,6 +127,12 @@ class WhiteboardToolbar extends StatelessWidget {
                     icon: Icons.delete_outline,
                     tooltip: 'مسح الكل',
                     onPressed: controller.clear,
+                  ),
+                  _VerticalDivider(),
+                  _CompactIconButton(
+                    icon: Icons.memory,
+                    tooltip: 'محاكي الدوائر الكهربية',
+                    onPressed: _openCircuitSimulator,
                   ),
                 ],
               ),

@@ -27,9 +27,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// The fastest free model — a live check needs to feel instant (target:
-// flagged within ~3s of the student finishing a line), not thorough.
-const GEMINI_MODEL = "gemini-3.6-flash-lite";
+// Same model generate-quiz/wb-grade already use successfully — an invented
+// "-lite" variant isn't a real confirmed model id and was silently failing
+// every call (500, masked since this function logs no response detail).
+const GEMINI_MODEL = "gemini-3.6-flash";
 
 const LIVE_CHECK_SCHEMA = {
   type: "OBJECT",
@@ -175,7 +176,14 @@ async function liveCheckWithGemini(
     await new Promise((resolve) => setTimeout(resolve, 1500));
   }
   if (!res!.ok) {
-    throw new Error(`Gemini API error (${res!.status})`);
+    let detail = await res!.text();
+    try {
+      const parsed = JSON.parse(detail);
+      detail = parsed?.error?.message ?? detail;
+    } catch {
+      // not JSON — keep the raw text
+    }
+    throw new Error(`Gemini API error (${res!.status}): ${detail}`);
   }
   const data = await res!.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;

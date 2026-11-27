@@ -6,6 +6,7 @@ class Course {
     this.tutorId,
     this.firstTermId,
     this.materialsLink,
+    this.telegramLink,
     this.demoLink,
     this.groupLink,
     this.notes,
@@ -20,6 +21,7 @@ class Course {
   final String? tutorId;
   final String? firstTermId;
   final String? materialsLink;
+  final String? telegramLink;
   final String? demoLink;
   final String? groupLink;
   final String? notes;
@@ -35,6 +37,7 @@ class Course {
       tutorId: json['tutor_id'] as String?,
       firstTermId: json['first_term_id'] as String?,
       materialsLink: json['materials_link'] as String?,
+      telegramLink: json['telegram_link'] as String?,
       demoLink: json['demo_link'] as String?,
       groupLink: json['group_link'] as String?,
       notes: json['notes'] as String?,

@@ -37,8 +37,22 @@ class TutorsScreen extends StatelessWidget {
   }
 }
 
-class _ApplicationsTab extends ConsumerWidget {
+class _ApplicationsTab extends ConsumerStatefulWidget {
   const _ApplicationsTab();
+
+  @override
+  ConsumerState<_ApplicationsTab> createState() => _ApplicationsTabState();
+}
+
+class _ApplicationsTabState extends ConsumerState<_ApplicationsTab> {
+  final _searchController = TextEditingController();
+  String _demoFilter = 'all'; // all | with_demo | without_demo
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _promote(
     BuildContext context,
@@ -236,7 +250,7 @@ class _ApplicationsTab extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final applicationsAsync = ref.watch(applicationsProvider);
 
     return applicationsAsync.when(
@@ -255,6 +269,21 @@ class _ApplicationsTab extends ConsumerWidget {
             ),
           );
         }
+
+        final query = _searchController.text.trim().toLowerCase();
+        bool subjectMatches(Map<String, dynamic> s) =>
+            (s['ar'] as String? ?? '').toLowerCase().contains(query) ||
+            (s['en'] as String? ?? '').toLowerCase().contains(query);
+        final filtered = pending.where((a) {
+          final hasDemo = a.demoLink != null && a.demoLink!.isNotEmpty;
+          if (_demoFilter == 'with_demo' && !hasDemo) return false;
+          if (_demoFilter == 'without_demo' && hasDemo) return false;
+          if (query.isEmpty) return true;
+          if (a.name.toLowerCase().contains(query)) return true;
+          if (a.facultyLabel.toLowerCase().contains(query)) return true;
+          return a.subjects.any(subjectMatches);
+        }).toList();
+
         return Column(
           children: [
             Padding(
@@ -263,7 +292,9 @@ class _ApplicationsTab extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${pending.length} طلب في الانتظار',
+                    filtered.length == pending.length
+                        ? '${pending.length} طلب في الانتظار'
+                        : '${filtered.length} من ${pending.length} طلب',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
@@ -275,7 +306,7 @@ class _ApplicationsTab extends ConsumerWidget {
                     children: [
                       TextButton.icon(
                         onPressed: () =>
-                            _deleteAlreadyInRoster(context, ref, pending),
+                            _deleteAlreadyInRoster(context, ref, filtered),
                         icon: const Icon(
                           Icons.playlist_remove,
                           size: 18,
@@ -287,7 +318,7 @@ class _ApplicationsTab extends ConsumerWidget {
                         ),
                       ),
                       TextButton.icon(
-                        onPressed: () => _promoteAll(context, ref, pending),
+                        onPressed: () => _promoteAll(context, ref, filtered),
                         icon: const Icon(Icons.done_all, size: 18),
                         label: const Text('قبول الكل'),
                       ),
@@ -296,12 +327,62 @@ class _ApplicationsTab extends ConsumerWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: 'ابحث بالاسم أو المادة أو الجامعة...',
+                  prefixIcon: Icon(Icons.search),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _FilterChip(
+                      label: 'الكل',
+                      selected: _demoFilter == 'all',
+                      onTap: () => setState(() => _demoFilter = 'all'),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: '🎬 عنده تجريبي',
+                      selected: _demoFilter == 'with_demo',
+                      onTap: () => setState(() => _demoFilter = 'with_demo'),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'من غير تجريبي',
+                      selected: _demoFilter == 'without_demo',
+                      onTap: () =>
+                          setState(() => _demoFilter = 'without_demo'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            if (filtered.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'مفيش نتائج',
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                ),
+              )
+            else
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(14),
-                itemCount: pending.length,
+                itemCount: filtered.length,
                 itemBuilder: (context, i) {
-                  final app = pending[i];
+                  final app = filtered[i];
                   return ApplicationCard(
                     application: app,
                     onPromote: () => _promote(context, ref, app),

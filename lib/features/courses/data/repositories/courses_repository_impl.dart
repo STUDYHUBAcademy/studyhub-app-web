@@ -105,6 +105,11 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
+  Future<void> updateCourseTelegramLink(String courseId, String? link) {
+    return _remote.updateCourse(courseId, {'telegram_link': link});
+  }
+
+  @override
   Future<void> updateCourseDemoLink(String courseId, String? link) {
     return _remote.updateCourse(courseId, {'demo_link': link});
   }
